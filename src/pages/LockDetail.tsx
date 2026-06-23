@@ -17,6 +17,7 @@ import { StatusBadge } from "@/components/ui/StatusBadge"
 import { DexBadge } from "@/components/ui/DexBadge"
 import { CountdownTimer } from "@/components/ui/CountdownTimer"
 import { LockProgressBar } from "@/components/ui/LockProgressBar"
+import { NotificationSettings } from "@/components/locks/NotificationSettings"
 import {
   formatAmount,
   formatUsd,
@@ -258,6 +259,10 @@ function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }
             </div>
           </div>
         )}
+        {(isBeneficiary || isCreator) && (
+          <NotificationSettings lockId={lock.id} unlockAt={lock.unlockAt} />
+        )}
+
         {(canWithdraw || canExtend || canTransfer) && (
           <div className="flex flex-col gap-3 border-t border-border p-6 sm:flex-row">
             {canWithdraw && (

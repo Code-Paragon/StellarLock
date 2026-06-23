@@ -1,10 +1,11 @@
 import { useMemo, useState, type FormEvent } from "react"
 import { useNavigate } from "react-router-dom"
-import { Lock, Info } from "lucide-react"
+import { Lock, Info, Loader2 } from "lucide-react"
 import { Trans, useTranslation } from "react-i18next"
 import { Input, Label } from "@/components/ui/Input"
 import { Button } from "@/components/ui/Button"
 import { useWallet } from "@/hooks/useWallet"
+import { useTokenBalance } from "@/hooks/useLocks"
 import { createTokenLock } from "@/lib/token-locker"
 import { trackEvent } from "@/lib/analytics"
 import { formatDate } from "@/lib/utils"
@@ -23,6 +24,11 @@ export function CreateTokenLockForm() {
   const [vesting, setVesting] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const validTokenAddress = tokenAddress.trim().length === 56 && tokenAddress.trim().startsWith("C")
+    ? tokenAddress.trim()
+    : undefined
+  const { data: balance, loading: balanceLoading } = useTokenBalance(validTokenAddress, address ?? null)
 
   const presets = [
     { label: t("tokenForm.days30"), days: 30 },
@@ -91,17 +97,42 @@ export function CreateTokenLockForm() {
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor="amount">{t("tokenForm.amount")}</Label>
-        <Input
-          id="amount"
-          type="number"
-          inputMode="decimal"
-          min="0"
-          step="any"
-          placeholder="0.00"
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-        />
+        <div className="flex items-center justify-between">
+          <Label htmlFor="amount">{t("tokenForm.amount")}</Label>
+          {validTokenAddress && (
+            <span className="flex items-center gap-1 text-xs text-muted-foreground">
+              {balanceLoading ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : balance != null ? (
+                <>
+                  {t("tokenForm.balance")}: {balance.toLocaleString(undefined, { maximumFractionDigits: 7 })}
+                </>
+              ) : null}
+            </span>
+          )}
+        </div>
+        <div className="flex gap-2">
+          <Input
+            id="amount"
+            type="number"
+            inputMode="decimal"
+            min="0"
+            step="any"
+            placeholder="0.00"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            className="flex-1"
+          />
+          {balance != null && balance > 0 && (
+            <button
+              type="button"
+              onClick={() => setAmount(String(balance))}
+              className="rounded-lg border border-border bg-secondary px-3 py-2 text-xs font-medium transition-colors hover:border-primary/40 cursor-pointer"
+            >
+              {t("tokenForm.max")}
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="flex flex-col gap-2">

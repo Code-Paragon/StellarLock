@@ -80,12 +80,18 @@ fn save_lock(env: &Env, lock: &Lock) {
     env.storage().persistent().set(&DataKey::Lock(lock.id), lock);
 }
 
-fn collect_locks(env: &Env, ids: Vec<u64>) -> Vec<Lock> {
+fn collect_locks_paginated(env: &Env, ids: Vec<u64>, offset: u32, limit: u32) -> Vec<Lock> {
     let mut out: Vec<Lock> = vec![env];
-    for id in ids.iter() {
+    let len = ids.len();
+    let start = offset.min(len);
+    let end = (start + limit).min(len);
+    let mut i = start;
+    while i < end {
+        let id = ids.get(i).unwrap();
         if let Some(lock) = env.storage().persistent().get(&DataKey::Lock(id)) {
             out.push_back(lock);
         }
+        i += 1;
     }
     out
 }
@@ -225,18 +231,30 @@ impl TokenLocker {
         env.storage().persistent().get(&DataKey::Lock(id))
     }
 
-    pub fn get_locks_by_creator(env: Env, creator: Address) -> Vec<Lock> {
+    pub fn get_locks_by_creator(env: Env, creator: Address, offset: u32, limit: u32) -> Vec<Lock> {
         let ids = get_index(&env, DataKey::ByCreator(creator));
-        collect_locks(&env, ids)
+        collect_locks_paginated(&env, ids, offset, limit)
     }
 
-    pub fn get_locks_by_beneficiary(env: Env, beneficiary: Address) -> Vec<Lock> {
+    pub fn get_locks_by_beneficiary(env: Env, beneficiary: Address, offset: u32, limit: u32) -> Vec<Lock> {
         let ids = get_index(&env, DataKey::ByBeneficiary(beneficiary));
-        collect_locks(&env, ids)
+        collect_locks_paginated(&env, ids, offset, limit)
     }
 
-    pub fn get_locks_by_token(env: Env, token: Address) -> Vec<Lock> {
+    pub fn get_locks_by_token(env: Env, token: Address, offset: u32, limit: u32) -> Vec<Lock> {
         let ids = get_index(&env, DataKey::ByToken(token));
-        collect_locks(&env, ids)
+        collect_locks_paginated(&env, ids, offset, limit)
+    }
+
+    pub fn get_lock_count_by_creator(env: Env, creator: Address) -> u32 {
+        get_index(&env, DataKey::ByCreator(creator)).len()
+    }
+
+    pub fn get_lock_count_by_beneficiary(env: Env, beneficiary: Address) -> u32 {
+        get_index(&env, DataKey::ByBeneficiary(beneficiary)).len()
+    }
+
+    pub fn get_lock_count_by_token(env: Env, token: Address) -> u32 {
+        get_index(&env, DataKey::ByToken(token)).len()
     }
 }

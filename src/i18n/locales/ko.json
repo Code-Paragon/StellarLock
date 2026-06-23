@@ -65,6 +65,8 @@
     "vestingDesc": "잠금 해제 날짜까지 한 번에 전부가 아닌 점진적으로 릴리스합니다.",
     "lockInfo": "잠금은 불변입니다: 나중에 잠금 해제 날짜를 연장할 수 있지만, 절대 단축할 수 없습니다.",
     "fundsUnlockOn": "자금은 <1>{{date}}</1>에 잠금 해제됩니다.",
+    "balance": "잔액",
+    "max": "최대",
     "submit": "토큰 잠금",
     "days30": "30일",
     "days90": "90일",
@@ -165,6 +167,16 @@
     "title": "지갑을 연결하세요",
     "desc": "계속하려면 Stellar 지갑을 연결하세요.",
     "connect": "지갑 연결"
+  },
+  "notifications": {
+    "title": "잠금 해제 알림",
+    "browser": "브라우저 알림",
+    "browserDesc": "잠금 해제 7일 전, 1일 전, 그리고 해제 시 알림을 받으세요.",
+    "webhook": "웹훅",
+    "webhookDesc": "잠금 해제 이벤트를 URL로 전송합니다 (텔레그램 봇, 디스코드 등).",
+    "enable": "활성화",
+    "enabled": "활성화됨",
+    "save": "저장"
   },
   "lockCard": {
     "lockedAmount": "잠금 수량",

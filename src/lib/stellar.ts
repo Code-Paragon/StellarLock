@@ -1,4 +1,5 @@
 import {
+  Address,
   Contract,
   Networks,
   rpc as SorobanRpc,
@@ -129,6 +130,17 @@ export async function submitCall(
   if (getResult.status === SorobanRpc.Api.GetTransactionStatus.FAILED) {
     throw new Error(`Transaction failed: ${JSON.stringify(getResult)}`)
   }
+}
+
+// ── Token helpers ────────────────────────────────────────────────────────────
+
+export async function getTokenBalance(tokenAddress: string, owner: string): Promise<number> {
+  const raw = await simulateCall<bigint>(
+    tokenAddress,
+    "balance",
+    [new Address(owner).toScVal()],
+  )
+  return Number(raw ?? 0n) / 1e7
 }
 
 // ── Utils ─────────────────────────────────────────────────────────────────────

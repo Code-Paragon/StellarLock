@@ -65,6 +65,8 @@
     "vestingDesc": "Libera gradualmente desde ahora hasta la fecha de desbloqueo, en lugar de todo de una vez.",
     "lockInfo": "Los bloqueos son inmutables: puedes extender la fecha de desbloqueo después, pero nunca acortarla.",
     "fundsUnlockOn": "Los fondos se desbloquean el <1>{{date}}</1>.",
+    "balance": "Saldo",
+    "max": "Máx",
     "submit": "Bloquear tokens",
     "days30": "30 días",
     "days90": "90 días",
@@ -165,6 +167,16 @@
     "title": "Conecta tu billetera",
     "desc": "Conecta una billetera Stellar para continuar.",
     "connect": "Conectar billetera"
+  },
+  "notifications": {
+    "title": "Notificaciones de desbloqueo",
+    "browser": "Notificaciones del navegador",
+    "browserDesc": "Recibe avisos 7 días, 1 día antes y cuando ocurra el desbloqueo.",
+    "webhook": "Webhook",
+    "webhookDesc": "Envía eventos de desbloqueo a una URL (bot de Telegram, Discord, etc).",
+    "enable": "Activar",
+    "enabled": "Activado",
+    "save": "Guardar"
   },
   "lockCard": {
     "lockedAmount": "Cantidad bloqueada",
