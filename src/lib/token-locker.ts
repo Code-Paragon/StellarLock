@@ -61,6 +61,15 @@ function addressArg(addr: string): xdr.ScVal {
   return new Address(addr).toScVal()
 }
 
+const DEFAULT_PAGE_SIZE = 50
+
+function paginationArgs(offset: number, limit: number): xdr.ScVal[] {
+  return [
+    nativeToScVal(offset, { type: "u32" }),
+    nativeToScVal(limit, { type: "u32" }),
+  ]
+}
+
 // ── Read methods ──────────────────────────────────────────────────────────────
 
 export async function getLock(id: string): Promise<Lock | null> {
@@ -72,29 +81,68 @@ export async function getLock(id: string): Promise<Lock | null> {
   return raw ? toLock(raw) : null
 }
 
-export async function getLocksByCreator(address: string): Promise<Lock[]> {
+export async function getLocksByCreator(
+  address: string,
+  offset = 0,
+  limit = DEFAULT_PAGE_SIZE,
+): Promise<Lock[]> {
   const raw = await simulateCall<Record<string, unknown>[]>(
     CONTRACTS.tokenLocker,
     "get_locks_by_creator",
-    [addressArg(address)],
+    [addressArg(address), ...paginationArgs(offset, limit)],
   )
   return (raw ?? []).map(toLock)
 }
 
-export async function getLocksByBeneficiary(address: string): Promise<Lock[]> {
+export async function getLocksByBeneficiary(
+  address: string,
+  offset = 0,
+  limit = DEFAULT_PAGE_SIZE,
+): Promise<Lock[]> {
   const raw = await simulateCall<Record<string, unknown>[]>(
     CONTRACTS.tokenLocker,
     "get_locks_by_beneficiary",
-    [addressArg(address)],
+    [addressArg(address), ...paginationArgs(offset, limit)],
   )
   return (raw ?? []).map(toLock)
 }
 
-export async function getLocksByToken(tokenAddress: string): Promise<TokenLockSummary | null> {
+export async function getLockCountByCreator(address: string): Promise<number> {
+  const raw = await simulateCall<number>(
+    CONTRACTS.tokenLocker,
+    "get_lock_count_by_creator",
+    [addressArg(address)],
+  )
+  return Number(raw ?? 0)
+}
+
+export async function getLockCountByBeneficiary(address: string): Promise<number> {
+  const raw = await simulateCall<number>(
+    CONTRACTS.tokenLocker,
+    "get_lock_count_by_beneficiary",
+    [addressArg(address)],
+  )
+  return Number(raw ?? 0)
+}
+
+export async function getLockCountByToken(address: string): Promise<number> {
+  const raw = await simulateCall<number>(
+    CONTRACTS.tokenLocker,
+    "get_lock_count_by_token",
+    [addressArg(address)],
+  )
+  return Number(raw ?? 0)
+}
+
+export async function getLocksByToken(
+  tokenAddress: string,
+  offset = 0,
+  limit = DEFAULT_PAGE_SIZE,
+): Promise<TokenLockSummary | null> {
   const raw = await simulateCall<Record<string, unknown>[]>(
     CONTRACTS.tokenLocker,
     "get_locks_by_token",
-    [addressArg(tokenAddress)],
+    [addressArg(tokenAddress), ...paginationArgs(offset, limit)],
   )
   if (!raw || raw.length === 0) return null
 

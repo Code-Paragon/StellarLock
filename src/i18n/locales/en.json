@@ -65,6 +65,8 @@
     "vestingDesc": "Release gradually from now until the unlock date, instead of all at once.",
     "lockInfo": "Locks are immutable: you can extend the unlock date later, but never shorten it.",
     "fundsUnlockOn": "Funds unlock on <1>{{date}}</1>.",
+    "balance": "Balance",
+    "max": "Max",
     "submit": "Lock tokens",
     "days30": "30 days",
     "days90": "90 days",
@@ -165,6 +167,16 @@
     "title": "Connect your wallet",
     "desc": "Connect a Stellar wallet to continue.",
     "connect": "Connect Wallet"
+  },
+  "notifications": {
+    "title": "Unlock Notifications",
+    "browser": "Browser notifications",
+    "browserDesc": "Get notified 7 days, 1 day before, and when unlock happens.",
+    "webhook": "Webhook",
+    "webhookDesc": "Send unlock events to a URL (Telegram bot, Discord, etc).",
+    "enable": "Enable",
+    "enabled": "Enabled",
+    "save": "Save"
   },
   "lockCard": {
     "lockedAmount": "Locked amount",

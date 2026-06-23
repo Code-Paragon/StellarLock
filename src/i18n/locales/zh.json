@@ -65,6 +65,8 @@
     "vestingDesc": "从现在到解锁日期逐步释放，而不是一次性释放。",
     "lockInfo": "锁定是不可变的：你可以延长解锁日期，但永远不能缩短。",
     "fundsUnlockOn": "资金在 <1>{{date}}</1> 解锁。",
+    "balance": "余额",
+    "max": "最大",
     "submit": "锁定代币",
     "days30": "30 天",
     "days90": "90 天",
@@ -165,6 +167,16 @@
     "title": "连接你的钱包",
     "desc": "连接 Stellar 钱包以继续。",
     "connect": "连接钱包"
+  },
+  "notifications": {
+    "title": "解锁通知",
+    "browser": "浏览器通知",
+    "browserDesc": "在解锁前7天、1天以及解锁时收到通知。",
+    "webhook": "Webhook",
+    "webhookDesc": "将解锁事件发送到URL（Telegram机器人、Discord等）。",
+    "enable": "启用",
+    "enabled": "已启用",
+    "save": "保存"
   },
   "lockCard": {
     "lockedAmount": "锁定数量",

@@ -75,22 +75,57 @@ function toLpLock(raw: Record<string, unknown>): Lock {
 
 // ── Read methods ──────────────────────────────────────────────────────────────
 
-export async function getLpLocksByCreator(address: string): Promise<Lock[]> {
+const DEFAULT_PAGE_SIZE = 50
+
+function paginationArgs(offset: number, limit: number): xdr.ScVal[] {
+  return [
+    nativeToScVal(offset, { type: "u32" }),
+    nativeToScVal(limit, { type: "u32" }),
+  ]
+}
+
+export async function getLpLocksByCreator(
+  address: string,
+  offset = 0,
+  limit = DEFAULT_PAGE_SIZE,
+): Promise<Lock[]> {
   const raw = await simulateCall<Record<string, unknown>[]>(
     CONTRACTS.lpLocker,
     "get_locks_by_creator",
-    [addressArg(address)],
+    [addressArg(address), ...paginationArgs(offset, limit)],
   )
   return (raw ?? []).map(toLpLock)
 }
 
-export async function getLpLocksByBeneficiary(address: string): Promise<Lock[]> {
+export async function getLpLocksByBeneficiary(
+  address: string,
+  offset = 0,
+  limit = DEFAULT_PAGE_SIZE,
+): Promise<Lock[]> {
   const raw = await simulateCall<Record<string, unknown>[]>(
     CONTRACTS.lpLocker,
     "get_locks_by_beneficiary",
-    [addressArg(address)],
+    [addressArg(address), ...paginationArgs(offset, limit)],
   )
   return (raw ?? []).map(toLpLock)
+}
+
+export async function getLpLockCountByCreator(address: string): Promise<number> {
+  const raw = await simulateCall<number>(
+    CONTRACTS.lpLocker,
+    "get_lock_count_by_creator",
+    [addressArg(address)],
+  )
+  return Number(raw ?? 0)
+}
+
+export async function getLpLockCountByBeneficiary(address: string): Promise<number> {
+  const raw = await simulateCall<number>(
+    CONTRACTS.lpLocker,
+    "get_lock_count_by_beneficiary",
+    [addressArg(address)],
+  )
+  return Number(raw ?? 0)
 }
 
 // ── Write methods ─────────────────────────────────────────────────────────────

@@ -65,6 +65,8 @@
     "vestingDesc": "Kilit açma tarihine kadar hepsini bir kerede değil, kademeli olarak serbest bırakır.",
     "lockInfo": "Kilitler değiştirilemez: kilit açma tarihini daha sonra uzatabilirsiniz, ancak asla kısaltamazsınız.",
     "fundsUnlockOn": "Fonlar <1>{{date}}</1> tarihinde açılır.",
+    "balance": "Bakiye",
+    "max": "Maks",
     "submit": "Tokenleri kilitle",
     "days30": "30 gün",
     "days90": "90 gün",
@@ -165,6 +167,16 @@
     "title": "Cüzdanınızı bağlayın",
     "desc": "Devam etmek için bir Stellar cüzdanı bağlayın.",
     "connect": "Cüzdanı Bağla"
+  },
+  "notifications": {
+    "title": "Kilit Açma Bildirimleri",
+    "browser": "Tarayıcı bildirimleri",
+    "browserDesc": "Kilit açılmadan 7 gün, 1 gün önce ve açıldığında bildirim alın.",
+    "webhook": "Webhook",
+    "webhookDesc": "Kilit açma olaylarını bir URL'ye gönderin (Telegram botu, Discord, vb).",
+    "enable": "Etkinleştir",
+    "enabled": "Etkin",
+    "save": "Kaydet"
   },
   "lockCard": {
     "lockedAmount": "Kilitli miktar",
