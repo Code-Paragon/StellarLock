@@ -1,11 +1,12 @@
 import type { ReactNode } from "react"
 import { Wallet } from "lucide-react"
+import { useTranslation } from "react-i18next"
 import { useWallet } from "@/hooks/useWallet"
 import { Button } from "@/components/ui/Button"
 import { Card } from "@/components/ui/Card"
 
-/** Wraps content that requires a connected wallet. */
 export function ConnectGate({ children, title }: { children: ReactNode; title?: string }) {
+  const { t } = useTranslation()
   const { isConnected, connect, connecting } = useWallet()
 
   if (isConnected) return <>{children}</>
@@ -16,14 +17,14 @@ export function ConnectGate({ children, title }: { children: ReactNode; title?: 
         <Wallet className="h-6 w-6" />
       </span>
       <div>
-        <h2 className="text-lg font-semibold">{title ?? "Connect your wallet"}</h2>
+        <h2 className="text-lg font-semibold">{title ?? t("connectGate.title")}</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Connect a Stellar wallet to continue.
+          {t("connectGate.desc")}
         </p>
       </div>
       <Button onClick={connect} loading={connecting}>
         <Wallet className="h-4 w-4" />
-        Connect Wallet
+        {t("connectGate.connect")}
       </Button>
     </Card>
   )

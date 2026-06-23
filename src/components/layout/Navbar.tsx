@@ -1,17 +1,19 @@
 import { Link, NavLink, useLocation } from "react-router-dom"
 import { Lock, Wallet, LogOut } from "lucide-react"
+import { useTranslation } from "react-i18next"
 import { useWallet } from "@/hooks/useWallet"
 import { Button } from "@/components/ui/Button"
 import { shortAddress, cn } from "@/lib/utils"
 
-const NAV_LINKS = [
-  { to: "/app/create", label: "Create Lock" },
-  { to: "/app/locks", label: "My Locks" },
-]
-
 export function Navbar() {
+  const { t } = useTranslation()
   const { address, isConnected, connecting, connect, disconnect } = useWallet()
   const location = useLocation()
+
+  const navLinks = [
+    { to: "/app/create", label: t("nav.createLock") },
+    { to: "/app/locks", label: t("nav.myLocks") },
+  ]
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur-md">
@@ -25,8 +27,8 @@ export function Navbar() {
           </span>
         </Link>
 
-        <nav className="hidden items-center gap-1 md:flex">
-          {NAV_LINKS.map((link) => (
+        <nav aria-label="Main navigation" className="hidden items-center gap-1 md:flex">
+          {navLinks.map((link) => (
             <NavLink
               key={link.to}
               to={link.to}
@@ -51,14 +53,14 @@ export function Navbar() {
                 <span className="h-2 w-2 rounded-full bg-success" aria-hidden />
                 <span className="font-mono">{shortAddress(address!)}</span>
               </span>
-              <Button variant="ghost" size="icon" onClick={disconnect} aria-label="Disconnect wallet">
+              <Button variant="ghost" size="icon" onClick={disconnect} aria-label={t("nav.disconnectWallet")}>
                 <LogOut className="h-4 w-4" />
               </Button>
             </div>
           ) : (
             <Button onClick={connect} loading={connecting}>
               <Wallet className="h-4 w-4" />
-              Connect Wallet
+              {t("nav.connectWallet")}
             </Button>
           )}
         </div>

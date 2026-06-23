@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom"
+import { Trans, useTranslation } from "react-i18next"
 import {
   ShieldCheck,
   Lock,
@@ -22,6 +23,8 @@ const totalSecured = MOCK_LOCKS.filter((l) => l.status !== "withdrawn").reduce(
 )
 
 export function Landing() {
+  const { t } = useTranslation()
+
   return (
     <div>
       {/* Hero */}
@@ -30,15 +33,15 @@ export function Landing() {
         <div className="mx-auto max-w-4xl px-4 pb-16 pt-20 text-center">
           <Badge variant="primary" className="mb-6">
             <ShieldCheck className="h-3.5 w-3.5" />
-            Built on Stellar · Soroban smart contracts
+            {t("landing.badge")}
           </Badge>
           <h1 className="text-balance text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">
-            Prove your liquidity is{" "}
-            <span className="text-primary">locked</span> — without asking for trust
+            <Trans i18nKey="landing.heroTitle">
+              Prove your liquidity is <span className="text-primary">locked</span> — without asking for trust
+            </Trans>
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-pretty text-lg leading-relaxed text-muted-foreground">
-            StellarLock lets projects lock tokens and LP positions in immutable on-chain contracts,
-            then share a public, verifiable page so their community knows they can&apos;t rug.
+            {t("landing.heroDesc")}
           </p>
 
           <div className="mx-auto mt-8 max-w-2xl">
@@ -48,12 +51,12 @@ export function Landing() {
           <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
             <Link to="/app/create">
               <Button size="lg">
-                Lock your tokens <ArrowRight className="h-4 w-4" />
+                {t("landing.lockTokens")} <ArrowRight className="h-4 w-4" />
               </Button>
             </Link>
             <Link to="/app/locks">
               <Button size="lg" variant="outline">
-                View my locks
+                {t("landing.viewLocks")}
               </Button>
             </Link>
           </div>
@@ -63,10 +66,10 @@ export function Landing() {
       {/* Stats strip */}
       <section className="border-y border-border bg-card/40">
         <div className="mx-auto grid max-w-6xl grid-cols-2 gap-px px-4 sm:grid-cols-4">
-          <Stat label="Value secured" value={formatUsd(totalSecured)} />
-          <Stat label="Active locks" value={String(MOCK_LOCKS.filter((l) => l.status !== "withdrawn").length)} />
-          <Stat label="Supported DEXs" value="2" hint="Aquarius · Soroswap" />
-          <Stat label="Network" value="Stellar" hint="Testnet" />
+          <Stat label={t("landing.valueSecured")} value={formatUsd(totalSecured)} />
+          <Stat label={t("landing.activeLocks")} value={String(MOCK_LOCKS.filter((l) => l.status !== "withdrawn").length)} />
+          <Stat label={t("landing.supportedDexs")} value="2" hint={t("landing.dexHint")} />
+          <Stat label={t("landing.network")} value={t("landing.networkValue")} hint={t("common.testnet")} />
         </div>
       </section>
 
@@ -74,30 +77,28 @@ export function Landing() {
       <section className="mx-auto max-w-6xl px-4 py-20">
         <div className="mx-auto max-w-2xl text-center">
           <h2 className="text-balance text-3xl font-bold tracking-tight">
-            Rug pulls happen when teams can pull liquidity. So remove the option.
+            {t("landing.problemTitle")}
           </h2>
           <p className="mt-4 text-pretty text-muted-foreground">
-            When liquidity and team tokens are locked in a contract no one can withdraw early, the
-            single biggest rug-pull vector disappears. StellarLock makes that lock public and
-            shareable.
+            {t("landing.problemDesc")}
           </p>
         </div>
 
         <div className="mt-12 grid grid-cols-1 gap-5 md:grid-cols-3">
           <Feature
             icon={<Lock className="h-5 w-5" />}
-            title="Token & team locks"
-            desc="Lock allocations with a fixed unlock date or a linear vesting schedule. Extend anytime — never shorten."
+            title={t("landing.featureTokenTitle")}
+            desc={t("landing.featureTokenDesc")}
           />
           <Feature
             icon={<Droplets className="h-5 w-5" />}
-            title="LP liquidity locks"
-            desc="Lock Aquarius and Soroswap pool shares so traders know the liquidity floor stays put."
+            title={t("landing.featureLpTitle")}
+            desc={t("landing.featureLpDesc")}
           />
           <Feature
             icon={<Eye className="h-5 w-5" />}
-            title="Public explorer"
-            desc="Every lock gets a shareable page showing amounts, beneficiaries, and unlock dates — verifiable by anyone."
+            title={t("landing.featureExplorerTitle")}
+            desc={t("landing.featureExplorerDesc")}
           />
         </div>
       </section>
@@ -105,25 +106,25 @@ export function Landing() {
       {/* How it works */}
       <section className="border-t border-border bg-card/40">
         <div className="mx-auto max-w-6xl px-4 py-20">
-          <h2 className="text-center text-3xl font-bold tracking-tight">How it works</h2>
+          <h2 className="text-center text-3xl font-bold tracking-tight">{t("landing.howItWorks")}</h2>
           <div className="mt-12 grid grid-cols-1 gap-6 md:grid-cols-3">
             <Step
               n={1}
               icon={<Lock className="h-5 w-5" />}
-              title="Lock"
-              desc="Connect your wallet, choose a token or LP position, set the amount and unlock date, and sign one transaction."
+              title={t("landing.stepLockTitle")}
+              desc={t("landing.stepLockDesc")}
             />
             <Step
               n={2}
               icon={<Clock className="h-5 w-5" />}
-              title="Enforce"
-              desc="The Soroban contract holds the funds. No one — not even you — can withdraw before the unlock timestamp."
+              title={t("landing.stepEnforceTitle")}
+              desc={t("landing.stepEnforceDesc")}
             />
             <Step
               n={3}
               icon={<Share2 className="h-5 w-5" />}
-              title="Share"
-              desc="Drop your public explorer link in your README or Telegram. Your community verifies the lock themselves."
+              title={t("landing.stepShareTitle")}
+              desc={t("landing.stepShareDesc")}
             />
           </div>
         </div>
@@ -136,14 +137,14 @@ export function Landing() {
             <TrendingUp className="h-6 w-6" />
           </span>
           <h2 className="max-w-xl text-balance text-3xl font-bold tracking-tight">
-            Earn your community&apos;s trust in one transaction
+            {t("landing.ctaTitle")}
           </h2>
           <p className="max-w-xl text-pretty text-muted-foreground">
-            Lock your liquidity, share the proof, and let the chain speak for you.
+            {t("landing.ctaDesc")}
           </p>
           <Link to="/app/create">
             <Button size="lg">
-              Create your first lock <ArrowRight className="h-4 w-4" />
+              {t("landing.ctaButton")} <ArrowRight className="h-4 w-4" />
             </Button>
           </Link>
         </Card>
@@ -185,13 +186,15 @@ function Step({
   title: string
   desc: string
 }) {
+  const { t } = useTranslation()
+
   return (
     <div className="relative flex flex-col gap-3">
       <div className="flex items-center gap-3">
         <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-primary text-primary-foreground">
           {icon}
         </span>
-        <span className="font-mono text-sm text-muted-foreground">Step {n}</span>
+        <span className="font-mono text-sm text-muted-foreground">{t("landing.step", { n })}</span>
       </div>
       <h3 className="text-lg font-semibold">{title}</h3>
       <p className="text-sm leading-relaxed text-muted-foreground">{desc}</p>

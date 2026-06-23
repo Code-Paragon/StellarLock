@@ -17,4 +17,22 @@ export default defineConfig({
     host: true,
     allowedHosts: true,
   },
+  build: {
+    target: "es2022",
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes("node_modules/react-dom") || id.includes("node_modules/react/") || id.includes("node_modules/react-router")) {
+            return "vendor"
+          }
+          if (id.includes("node_modules/@stellar")) {
+            return "stellar"
+          }
+          if (id.includes("node_modules/i18next") || id.includes("node_modules/react-i18next")) {
+            return "i18n"
+          }
+        },
+      },
+    },
+  },
 })

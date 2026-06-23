@@ -1,0 +1,49 @@
+type EventName =
+  | "pageview"
+  | "wallet_connect"
+  | "wallet_disconnect"
+  | "lock_create_token"
+  | "lock_create_lp"
+  | "lock_withdraw"
+  | "lock_extend"
+  | "explorer_search"
+
+type EventProps = Record<string, string | number | boolean>
+
+function getPlausibleDomain(): string | undefined {
+  return import.meta.env.VITE_PLAUSIBLE_DOMAIN
+}
+
+function getPlausibleApiHost(): string {
+  return import.meta.env.VITE_PLAUSIBLE_API_HOST || "https://plausible.io"
+}
+
+export function initAnalytics(): void {
+  const domain = getPlausibleDomain()
+  if (!domain) return
+
+  const script = document.createElement("script")
+  script.defer = true
+  script.dataset.domain = domain
+  script.dataset.api = `${getPlausibleApiHost()}/api/event`
+  script.src = `${getPlausibleApiHost()}/js/script.js`
+  document.head.appendChild(script)
+}
+
+export function trackEvent(name: EventName, props?: EventProps): void {
+  const domain = getPlausibleDomain()
+  if (!domain) return
+
+  try {
+    const w = window as unknown as { plausible?: (name: string, opts?: { props: EventProps }) => void }
+    if (w.plausible) {
+      w.plausible(name, props ? { props } : undefined)
+    }
+  } catch {
+    // Silently ignore analytics failures
+  }
+}
+
+export function trackPageView(): void {
+  trackEvent("pageview")
+}

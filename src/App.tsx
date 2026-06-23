@@ -1,12 +1,20 @@
-import { Routes, Route, Navigate } from "react-router-dom"
+import { useEffect } from "react"
+import { Routes, Route, Navigate, useLocation } from "react-router-dom"
 import { Layout } from "@/components/layout/Layout"
 import { Landing } from "@/pages/Landing"
 import { CreateLock } from "@/pages/CreateLock"
 import { MyLocks } from "@/pages/MyLocks"
 import { LockDetail } from "@/pages/LockDetail"
 import { Explorer } from "@/pages/Explorer"
+import { trackPageView } from "@/lib/analytics"
 
 export function App() {
+  const location = useLocation()
+
+  useEffect(() => {
+    trackPageView()
+  }, [location.pathname])
+
   return (
     <Routes>
       <Route element={<Layout />}>

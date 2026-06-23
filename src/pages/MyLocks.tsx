@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { Plus, Wallet, Layers } from "lucide-react"
+import { useTranslation } from "react-i18next"
 import { useWallet } from "@/hooks/useWallet"
 import { useMyLocks } from "@/hooks/useLocks"
 import { Tabs } from "@/components/ui/Tabs"
@@ -14,6 +15,7 @@ import type { Lock } from "@/types/lock"
 type Tab = "created" | "received"
 
 export function MyLocks() {
+  const { t } = useTranslation()
   const { address } = useWallet()
   const navigate = useNavigate()
   const { data, loading, error, reload } = useMyLocks(address)
@@ -32,26 +34,26 @@ export function MyLocks() {
   const list = tab === "created" ? created : received
 
   return (
-    <ConnectGate title="Connect to view your locks">
+    <ConnectGate title={t("connectGate.title")}>
       <div className="mx-auto max-w-6xl px-4 py-10 md:px-6">
         <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h1 className="text-balance text-3xl font-bold tracking-tight md:text-4xl">My Locks</h1>
-            <p className="mt-2 text-muted-foreground">Manage and withdraw your locked positions.</p>
+            <h1 className="text-balance text-3xl font-bold tracking-tight md:text-4xl">{t("myLocks.title")}</h1>
+            <p className="mt-2 text-muted-foreground">{t("myLocks.subtitle")}</p>
           </div>
           <Button onClick={() => navigate("/app/create")}>
             <Plus className="h-4 w-4" />
-            New Lock
+            {t("myLocks.newLock")}
           </Button>
         </header>
 
         <div className="mt-8 grid gap-4 sm:grid-cols-3">
-          <StatCard label="Locks Created" value={String(stats.count)} icon={<Layers className="h-4 w-4" />} />
-          <StatCard label="Total Value Locked" value={formatUsd(stats.totalValue)} />
+          <StatCard label={t("myLocks.locksCreated")} value={String(stats.count)} icon={<Layers className="h-4 w-4" />} />
+          <StatCard label={t("myLocks.totalValueLocked")} value={formatUsd(stats.totalValue)} />
           <StatCard
-            label="Ready to Withdraw"
+            label={t("myLocks.readyToWithdraw")}
             value={String(stats.unlockable)}
-            hint={stats.unlockable > 0 ? "Action available" : "Nothing unlocked yet"}
+            hint={stats.unlockable > 0 ? t("myLocks.actionAvailable") : t("myLocks.nothingUnlocked")}
           />
         </div>
 
@@ -60,8 +62,8 @@ export function MyLocks() {
             value={tab}
             onChange={(v) => setTab(v as Tab)}
             items={[
-              { value: "created", label: "Created by me", count: created.length },
-              { value: "received", label: "Beneficiary", count: received.length },
+              { value: "created", label: t("myLocks.createdByMe"), count: created.length },
+              { value: "received", label: t("myLocks.beneficiary"), count: received.length },
             ]}
           />
         </div>
@@ -85,6 +87,8 @@ function LockGrid({
   onRetry: () => void
   tab: Tab
 }) {
+  const { t } = useTranslation()
+
   if (loading) {
     return (
       <div className="mt-6 grid gap-4 md:grid-cols-2">
@@ -98,9 +102,9 @@ function LockGrid({
   if (error) {
     return (
       <div className="mt-10 rounded-xl border border-border bg-card p-8 text-center">
-        <p className="text-muted-foreground">Failed to load your locks.</p>
+        <p className="text-muted-foreground">{t("myLocks.failedToLoad")}</p>
         <Button variant="outline" className="mt-4" onClick={onRetry}>
-          Try again
+          {t("common.tryAgain")}
         </Button>
       </div>
     )
@@ -113,18 +117,16 @@ function LockGrid({
           <Wallet className="h-6 w-6" />
         </span>
         <h3 className="mt-4 text-lg font-semibold">
-          {tab === "created" ? "No locks here yet" : "No locks where you're the beneficiary"}
+          {tab === "created" ? t("myLocks.noLocksCreated") : t("myLocks.noBeneficiary")}
         </h3>
         <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-          {tab === "created"
-            ? "Create your first lock to prove your tokens or liquidity are secured."
-            : "Locks created for you by others will appear here."}
+          {tab === "created" ? t("myLocks.noLocksCreatedDesc") : t("myLocks.noBeneficiaryDesc")}
         </p>
         {tab === "created" && (
           <Link to="/app/create">
             <Button className="mt-6">
               <Plus className="h-4 w-4" />
-              Create a Lock
+              {t("myLocks.createLock")}
             </Button>
           </Link>
         )}

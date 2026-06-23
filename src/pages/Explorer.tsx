@@ -1,5 +1,6 @@
 import { useParams, Link } from "react-router-dom"
 import { Lock, Coins, CalendarClock, PieChart, ShieldCheck, ArrowLeft, ExternalLink, SearchX } from "lucide-react"
+import { Trans, useTranslation } from "react-i18next"
 import { useLocksByToken } from "@/hooks/useLocks"
 import { TokenAvatar } from "@/components/ui/TokenAvatar"
 import { StatCard } from "@/components/ui/StatCard"
@@ -12,6 +13,7 @@ import { explorerLink } from "@/lib/stellar"
 import { formatAmount, formatDate, formatUsd, shortAddress } from "@/lib/utils"
 
 export function Explorer() {
+  const { t } = useTranslation()
   const { token } = useParams<{ token: string }>()
   const { data, loading, error } = useLocksByToken(token)
 
@@ -21,7 +23,7 @@ export function Explorer() {
         to="/"
         className="mb-6 inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
       >
-        <ArrowLeft className="h-4 w-4" /> Back to search
+        <ArrowLeft className="h-4 w-4" /> {t("explorer.backToSearch")}
       </Link>
 
       {loading && <ExplorerSkeleton />}
@@ -53,8 +55,8 @@ export function Explorer() {
             <div className="flex items-center gap-2 rounded-xl border border-success/40 bg-success/10 px-4 py-3">
               <ShieldCheck className="h-5 w-5 text-success" />
               <div className="leading-tight">
-                <p className="text-sm font-semibold text-success">Liquidity verified locked</p>
-                <p className="text-xs text-muted-foreground">On-chain, immutable, public</p>
+                <p className="text-sm font-semibold text-success">{t("explorer.verifiedLocked")}</p>
+                <p className="text-xs text-muted-foreground">{t("explorer.verifiedHint")}</p>
               </div>
             </div>
           </div>
@@ -62,37 +64,36 @@ export function Explorer() {
           {/* Stats */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <StatCard
-              label="Total locked"
+              label={t("explorer.totalLocked")}
               value={formatAmount(data.totalLocked, { compact: true })}
-              hint={`${data.token.symbol} across all locks`}
+              hint={t("explorer.acrossAllLocks", { symbol: data.token.symbol })}
               icon={<Coins className="h-4 w-4" />}
             />
             <StatCard
-              label="Value secured"
+              label={t("explorer.valueSecured")}
               value={formatUsd(data.totalUsdValue)}
-              hint="Approx. USD at lock time"
+              hint={t("explorer.approxUsd")}
               icon={<Lock className="h-4 w-4" />}
             />
             <StatCard
-              label="Active locks"
+              label={t("explorer.activeLocks")}
               value={data.activeLocks}
-              hint="Currently enforced on-chain"
+              hint={t("explorer.enforced")}
               icon={<ShieldCheck className="h-4 w-4" />}
             />
             <StatCard
-              label="Next unlock"
+              label={t("explorer.nextUnlock")}
               value={data.nextUnlockAt ? formatDate(data.nextUnlockAt) : "—"}
-              hint={data.percentOfSupply ? `~${data.percentOfSupply}% of supply locked` : undefined}
+              hint={data.percentOfSupply ? t("explorer.supplyLocked", { percent: data.percentOfSupply }) : undefined}
               icon={data.percentOfSupply ? <PieChart className="h-4 w-4" /> : <CalendarClock className="h-4 w-4" />}
             />
           </div>
 
           {/* Shareable badge */}
           <section className="rounded-2xl border border-border bg-card p-6">
-            <h2 className="text-lg font-semibold">Share proof with your community</h2>
+            <h2 className="text-lg font-semibold">{t("explorer.shareTitle")}</h2>
             <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-              Embed this badge in your README, website, or Telegram. Anyone can click through to this
-              page and independently verify that liquidity is locked — no trust required.
+              {t("explorer.shareDesc")}
             </p>
             <div className="mt-5">
               <LockBadge summary={data} />
@@ -102,7 +103,7 @@ export function Explorer() {
           {/* Locks list */}
           <section>
             <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-lg font-semibold">All locks ({data.locks.length})</h2>
+              <h2 className="text-lg font-semibold">{t("explorer.allLocks", { count: data.locks.length })}</h2>
             </div>
             <TokenLockList locks={data.locks} />
           </section>
@@ -127,23 +128,25 @@ function ExplorerSkeleton() {
 }
 
 function NotFound({ query }: { query: string }) {
+  const { t } = useTranslation()
+
   return (
     <div className="mx-auto max-w-xl py-12 text-center">
       <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-border bg-card">
         <SearchX className="h-6 w-6 text-muted-foreground" />
       </div>
-      <h1 className="text-xl font-semibold">No locks found</h1>
+      <h1 className="text-xl font-semibold">{t("explorer.noLocksTitle")}</h1>
       <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-        We couldn&apos;t find any locks for{" "}
-        <span className="font-mono text-foreground">{shortAddress(query, 6, 6)}</span>. Double-check the
-        token symbol or contract address, or create the first lock for this token.
+        <Trans i18nKey="explorer.noLocksDesc" values={{ query: shortAddress(query, 6, 6) }}>
+          We couldn&apos;t find any locks for <span className="font-mono text-foreground">{{ query: shortAddress(query, 6, 6) } as unknown as string}</span>.
+        </Trans>
       </p>
       <div className="mt-6">
         <TokenSearchBar />
       </div>
       <div className="mt-4">
         <Link to="/app/create">
-          <Button variant="outline">Create a lock</Button>
+          <Button variant="outline">{t("explorer.createLock")}</Button>
         </Link>
       </div>
     </div>

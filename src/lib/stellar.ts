@@ -8,16 +8,18 @@ import {
   xdr,
 } from "@stellar/stellar-sdk"
 
+const isMainnet = import.meta.env.VITE_NETWORK === "mainnet"
+
 export const NETWORK = {
-  passphrase: Networks.TESTNET,
-  rpcUrl: "https://soroban-testnet.stellar.org",
-  horizonUrl: "https://horizon-testnet.stellar.org",
-  networkName: "testnet" as const,
+  passphrase: isMainnet ? Networks.PUBLIC : Networks.TESTNET,
+  rpcUrl: import.meta.env.VITE_RPC_URL || "https://soroban-testnet.stellar.org",
+  horizonUrl: import.meta.env.VITE_HORIZON_URL || "https://horizon-testnet.stellar.org",
+  networkName: (isMainnet ? "public" : "testnet") as "public" | "testnet",
 }
 
 export const CONTRACTS = {
-  tokenLocker: "CBFCKEOQRQIXKLGU4QBUQVOINOKFBOXJ37LXEKLKNUO6TW4FNGDU26AW",
-  lpLocker: "CA3WYETNIF5IAF3VUNQ3SYKZFV45TOFBF7CEZ46I7QEBPWTRM73WLEI4",
+  tokenLocker: import.meta.env.VITE_TOKEN_LOCKER_CONTRACT || "CBFCKEOQRQIXKLGU4QBUQVOINOKFBOXJ37LXEKLKNUO6TW4FNGDU26AW",
+  lpLocker: import.meta.env.VITE_LP_LOCKER_CONTRACT || "CA3WYETNIF5IAF3VUNQ3SYKZFV45TOFBF7CEZ46I7QEBPWTRM73WLEI4",
 }
 
 // Soroban transactions need a higher base fee than classic Stellar

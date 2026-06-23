@@ -1,10 +1,12 @@
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Link, useNavigate, useParams } from "react-router-dom"
 import { ArrowLeft, Lock as LockIcon, Repeat, ExternalLink, ShieldCheck } from "lucide-react"
+import { useTranslation } from "react-i18next"
 import { useLock } from "@/hooks/useLocks"
 import { useWallet } from "@/hooks/useWallet"
 import { withdrawLock, extendLock } from "@/lib/token-locker"
 import { withdrawLpLock, extendLpLock } from "@/lib/lp-locker"
+import { trackEvent } from "@/lib/analytics"
 import { Card } from "@/components/ui/Card"
 import { Button } from "@/components/ui/Button"
 import { Input } from "@/components/ui/Input"
@@ -23,6 +25,7 @@ import {
 import type { Lock } from "@/types/lock"
 
 export function LockDetail() {
+  const { t } = useTranslation()
   const { id } = useParams<{ id: string }>()
   const { data: lock, loading, error, reload } = useLock(id)
 
@@ -38,14 +41,14 @@ export function LockDetail() {
   if (error || !lock) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-20 text-center md:px-6">
-        <h1 className="text-2xl font-bold">Lock not found</h1>
+        <h1 className="text-2xl font-bold">{t("lockDetail.notFoundTitle")}</h1>
         <p className="mt-2 text-muted-foreground">
-          We couldn&apos;t find a lock with id #{id}.
+          {t("lockDetail.notFoundDesc", { id })}
         </p>
         <Link to="/app/locks">
           <Button variant="outline" className="mt-6">
             <ArrowLeft className="h-4 w-4" />
-            Back to my locks
+            {t("lockDetail.backToLocks")}
           </Button>
         </Link>
       </div>
@@ -56,6 +59,7 @@ export function LockDetail() {
 }
 
 function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }) {
+  const { t } = useTranslation()
   const { address, signTransaction } = useWallet()
   const navigate = useNavigate()
   const isLp = lock.kind === "lp"
@@ -69,6 +73,14 @@ function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }
   const [busy, setBusy] = useState<"withdraw" | "extend" | null>(null)
   const [extendOpen, setExtendOpen] = useState(false)
   const [newDate, setNewDate] = useState("")
+  const extendPanelRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (extendOpen) {
+      const input = extendPanelRef.current?.querySelector("input")
+      input?.focus()
+    }
+  }, [extendOpen])
 
   async function handleWithdraw() {
     setBusy("withdraw")
@@ -76,6 +88,7 @@ function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }
       await (isLp
         ? withdrawLpLock(lock.id, address!, signTransaction)
         : withdrawLock(lock.id, address!, signTransaction))
+      trackEvent("lock_withdraw", { kind: lock.kind })
       onChange()
     } finally {
       setBusy(null)
@@ -91,6 +104,7 @@ function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }
       await (isLp
         ? extendLpLock(lock.id, ts, address!, signTransaction)
         : extendLock(lock.id, ts, address!, signTransaction))
+      trackEvent("lock_extend", { kind: lock.kind })
       setExtendOpen(false)
       onChange()
     } finally {
@@ -105,7 +119,7 @@ function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }
         className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
       >
         <ArrowLeft className="h-4 w-4" />
-        Back
+        {t("common.back")}
       </button>
 
       <Card className="mt-4 overflow-hidden">
@@ -116,7 +130,7 @@ function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }
               <div className="flex items-center gap-2">
                 <h1 className="text-2xl font-bold">{lock.token.symbol}</h1>
                 {isLp && lock.dex && <DexBadge dex={lock.dex} />}
-                <Badge variant="outline">{isLp ? "LP Lock" : "Token Lock"}</Badge>
+                <Badge variant="outline">{isLp ? t("lockDetail.lpLock") : t("lockDetail.tokenLock")}</Badge>
               </div>
               <p className="text-sm text-muted-foreground">{lock.token.name}</p>
             </div>
@@ -125,40 +139,40 @@ function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }
         </div>
 
         <div className="grid gap-px bg-border sm:grid-cols-2">
-          <Field label="Locked amount" className="bg-card">
+          <Field label={t("lockDetail.lockedAmount")} className="bg-card">
             <span className="text-lg font-semibold tabular-nums">
               {formatAmount(lock.amount)} {lock.token.symbol}
             </span>
             <span className="ml-2 text-sm text-muted-foreground">{formatUsd(lock.usdValue)}</span>
           </Field>
-          <Field label="Lock ID" className="bg-card">
+          <Field label={t("lockDetail.lockId")} className="bg-card">
             <span className="font-mono">#{lock.id}</span>
             {lock.extendedCount > 0 && (
               <span className="ml-3 inline-flex items-center gap-1 text-xs text-muted-foreground">
                 <Repeat className="h-3 w-3" />
-                Extended {lock.extendedCount}×
+                {t("lockDetail.extended", { count: lock.extendedCount })}
               </span>
             )}
           </Field>
-          <Field label="Locked on" className="bg-card">
+          <Field label={t("lockDetail.lockedOn")} className="bg-card">
             {formatDateTime(lock.createdAt)}
           </Field>
-          <Field label="Unlocks on" className="bg-card">
+          <Field label={t("lockDetail.unlocksOn")} className="bg-card">
             {formatDateTime(lock.unlockAt)}
           </Field>
-          <Field label="Creator" className="bg-card">
+          <Field label={t("lockDetail.creator")} className="bg-card">
             <span className="font-mono">{shortAddress(lock.creator)}</span>
-            {isCreator && <Badge className="ml-2">You</Badge>}
+            {isCreator && <Badge className="ml-2">{t("common.you")}</Badge>}
           </Field>
-          <Field label="Beneficiary" className="bg-card">
+          <Field label={t("lockDetail.beneficiary")} className="bg-card">
             <span className="font-mono">{shortAddress(lock.beneficiary)}</span>
-            {isBeneficiary && <Badge className="ml-2">You</Badge>}
+            {isBeneficiary && <Badge className="ml-2">{t("common.you")}</Badge>}
           </Field>
         </div>
 
         <div className="border-t border-border p-6">
           <div className="mb-3 flex items-center justify-between">
-            <span className="text-sm font-medium text-muted-foreground">Time remaining</span>
+            <span className="text-sm font-medium text-muted-foreground">{t("lockDetail.timeRemaining")}</span>
             <CountdownTimer target={lock.unlockAt} compact className="text-sm font-medium" />
           </div>
           <CountdownTimer target={lock.unlockAt} className="mb-5 justify-center sm:justify-start" />
@@ -170,29 +184,30 @@ function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }
             {canWithdraw && (
               <Button onClick={handleWithdraw} loading={busy === "withdraw"} className="flex-1">
                 <LockIcon className="h-4 w-4" />
-                Withdraw tokens
+                {t("lockDetail.withdraw")}
               </Button>
             )}
             {canExtend && (
               <Button
                 variant={canWithdraw ? "outline" : "primary"}
                 onClick={() => setExtendOpen((v) => !v)}
+                aria-expanded={extendOpen}
                 className="flex-1"
               >
                 <Repeat className="h-4 w-4" />
-                Extend lock
+                {t("lockDetail.extendLock")}
               </Button>
             )}
           </div>
         )}
 
         {extendOpen && canExtend && (
-          <div className="border-t border-border bg-secondary/30 p-6">
+          <div ref={extendPanelRef} role="region" aria-label={t("lockDetail.extendLock")} className="border-t border-border bg-secondary/30 p-6">
             <label className="text-sm font-medium" htmlFor="new-unlock">
-              New unlock date
+              {t("lockDetail.newUnlockDate")}
             </label>
             <p className="mb-3 text-xs text-muted-foreground">
-              Must be later than the current unlock date. Locks can only be extended, never shortened.
+              {t("lockDetail.extendHint")}
             </p>
             <div className="flex flex-col gap-3 sm:flex-row">
               <Input
@@ -203,7 +218,7 @@ function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }
                 className="flex-1"
               />
               <Button onClick={handleExtend} loading={busy === "extend"} disabled={!newDate}>
-                Confirm extension
+                {t("lockDetail.confirmExtension")}
               </Button>
             </div>
           </div>
@@ -214,13 +229,12 @@ function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }
         <div className="mt-4 flex items-start gap-3 rounded-xl border border-border bg-card p-4 text-sm text-muted-foreground">
           <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-success" />
           <p>
-            These tokens are secured by the StellarLock contract until the unlock date. Neither the
-            creator nor StellarLock can move them early.{" "}
+            {t("lockDetail.securityNotice")}{" "}
             <Link
               to={`/explore/${lock.token.address}`}
               className="inline-flex items-center gap-1 text-primary hover:underline"
             >
-              View token explorer <ExternalLink className="h-3 w-3" />
+              {t("lockDetail.viewExplorer")} <ExternalLink className="h-3 w-3" />
             </Link>
           </p>
         </div>

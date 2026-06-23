@@ -1,27 +1,19 @@
 import { useMemo, useState, type FormEvent } from "react"
 import { useNavigate } from "react-router-dom"
 import { Droplets, Info } from "lucide-react"
+import { Trans, useTranslation } from "react-i18next"
 import type { Dex } from "@/types/lock"
 import { Input, Label } from "@/components/ui/Input"
 import { Button } from "@/components/ui/Button"
 import { cn, formatDate } from "@/lib/utils"
 import { useWallet } from "@/hooks/useWallet"
 import { createLpLock } from "@/lib/lp-locker"
+import { trackEvent } from "@/lib/analytics"
 
 const DAY = 86_400_000
-const PRESETS = [
-  { label: "90 days", days: 90 },
-  { label: "6 months", days: 182 },
-  { label: "1 year", days: 365 },
-  { label: "2 years", days: 730 },
-]
-
-const DEXES: { value: Dex; label: string; desc: string }[] = [
-  { value: "aquarius", label: "Aquarius", desc: "AMM & SDEX pools" },
-  { value: "soroswap", label: "Soroswap", desc: "Soroban AMM" },
-]
 
 export function CreateLpLockForm() {
+  const { t } = useTranslation()
   const { address, signTransaction } = useWallet()
   const navigate = useNavigate()
 
@@ -32,6 +24,18 @@ export function CreateLpLockForm() {
   const [amount, setAmount] = useState("")
   const [unlockDate, setUnlockDate] = useState("")
   const [submitting, setSubmitting] = useState(false)
+
+  const dexes: { value: Dex; label: string; desc: string }[] = [
+    { value: "aquarius", label: t("lpForm.aquarius"), desc: t("lpForm.aquariusDesc") },
+    { value: "soroswap", label: t("lpForm.soroswap"), desc: t("lpForm.soroswapDesc") },
+  ]
+
+  const presets = [
+    { label: t("lpForm.days90"), days: 90 },
+    { label: t("lpForm.months6"), days: 182 },
+    { label: t("lpForm.year1"), days: 365 },
+    { label: t("lpForm.years2"), days: 730 },
+  ]
 
   const minDate = useMemo(() => new Date(Date.now() + DAY).toISOString().slice(0, 10), [])
   const unlockTs = unlockDate ? new Date(unlockDate).getTime() : 0
@@ -64,6 +68,7 @@ export function CreateLpLockForm() {
         address!,
         signTransaction,
       )
+      trackEvent("lock_create_lp", { dex })
       navigate(`/app/lock/${id}`)
     } finally {
       setSubmitting(false)
@@ -72,13 +77,15 @@ export function CreateLpLockForm() {
 
   return (
     <form onSubmit={submit} className="flex flex-col gap-5">
-      <div className="flex flex-col gap-2">
-        <Label>DEX</Label>
-        <div className="grid grid-cols-2 gap-3">
-          {DEXES.map((d) => (
+      <fieldset className="flex flex-col gap-2">
+        <legend className="text-sm font-medium text-foreground">{t("lpForm.dex")}</legend>
+        <div role="radiogroup" aria-label={t("lpForm.dex")} className="grid grid-cols-2 gap-3">
+          {dexes.map((d) => (
             <button
               type="button"
               key={d.value}
+              role="radio"
+              aria-checked={dex === d.value}
               onClick={() => setDex(d.value)}
               className={cn(
                 "flex flex-col items-start rounded-lg border p-3 text-left transition-colors cursor-pointer",
@@ -89,6 +96,7 @@ export function CreateLpLockForm() {
             >
               <span className="flex items-center gap-2 font-medium">
                 <span
+                  aria-hidden="true"
                   className={cn(
                     "h-2 w-2 rounded-full",
                     d.value === "aquarius" ? "bg-primary" : "bg-warning",
@@ -100,25 +108,25 @@ export function CreateLpLockForm() {
             </button>
           ))}
         </div>
-      </div>
+      </fieldset>
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor="pool">Pool share token address</Label>
+        <Label htmlFor="pool">{t("lpForm.poolAddress")}</Label>
         <Input
           id="pool"
-          placeholder="C… (LP token contract)"
+          placeholder={t("lpForm.poolPlaceholder")}
           value={poolShareAddress}
           onChange={(e) => setPoolShareAddress(e.target.value)}
           className="font-mono"
         />
         <p className="text-xs text-muted-foreground">
-          The contract address of your {dex === "aquarius" ? "Aquarius" : "Soroswap"} pool share token.
+          {t("lpForm.poolHint", { dex: dex === "aquarius" ? t("lpForm.aquarius") : t("lpForm.soroswap") })}
         </p>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div className="flex flex-col gap-2">
-          <Label htmlFor="token-a">Token A address</Label>
+          <Label htmlFor="token-a">{t("lpForm.tokenA")}</Label>
           <Input
             id="token-a"
             placeholder="C…"
@@ -128,7 +136,7 @@ export function CreateLpLockForm() {
           />
         </div>
         <div className="flex flex-col gap-2">
-          <Label htmlFor="token-b">Token B address</Label>
+          <Label htmlFor="token-b">{t("lpForm.tokenB")}</Label>
           <Input
             id="token-b"
             placeholder="C…"
@@ -140,7 +148,7 @@ export function CreateLpLockForm() {
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor="lp-amount">LP amount to lock</Label>
+        <Label htmlFor="lp-amount">{t("lpForm.amount")}</Label>
         <Input
           id="lp-amount"
           type="number"
@@ -154,7 +162,7 @@ export function CreateLpLockForm() {
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor="lp-unlock">Unlock date</Label>
+        <Label htmlFor="lp-unlock">{t("lpForm.unlockDate")}</Label>
         <Input
           id="lp-unlock"
           type="date"
@@ -163,9 +171,9 @@ export function CreateLpLockForm() {
           onChange={(e) => setUnlockDate(e.target.value)}
         />
         <div className="flex flex-wrap gap-2">
-          {PRESETS.map((p) => (
+          {presets.map((p) => (
             <button
-              key={p.label}
+              key={p.days}
               type="button"
               onClick={() => applyPreset(p.days)}
               className="rounded-full border border-border bg-secondary px-3 py-1 text-xs font-medium transition-colors hover:border-primary/40 cursor-pointer"
@@ -179,12 +187,13 @@ export function CreateLpLockForm() {
       <div className="flex items-start gap-2 rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm text-muted-foreground">
         <Info className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
         <span>
-          Locking LP shares signals to traders that the liquidity floor is protected.
+          {t("lpForm.lockInfo")}
           {unlockTs > Date.now() && (
             <>
               {" "}
-              Liquidity unlocks on{" "}
-              <span className="font-medium text-foreground">{formatDate(unlockTs)}</span>.
+              <Trans i18nKey="lpForm.liquidityUnlockOn" values={{ date: formatDate(unlockTs) }}>
+                Liquidity unlocks on <span className="font-medium text-foreground">{{ date: formatDate(unlockTs) } as unknown as string}</span>.
+              </Trans>
             </>
           )}
         </span>
@@ -192,7 +201,7 @@ export function CreateLpLockForm() {
 
       <Button type="submit" size="lg" loading={submitting} disabled={!valid}>
         <Droplets className="h-4 w-4" />
-        Lock liquidity
+        {t("lpForm.submit")}
       </Button>
     </form>
   )

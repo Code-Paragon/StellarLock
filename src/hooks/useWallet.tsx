@@ -13,6 +13,7 @@ import {
   getAddress,
   signTransaction as freighterSignTx,
 } from "@stellar/freighter-api"
+import { trackEvent } from "@/lib/analytics"
 
 const STORAGE_KEY = "stellarlock:wallet"
 const NETWORK_PASSPHRASE = "Test SDF Network ; September 2015"
@@ -65,6 +66,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       }
       setAddress(addrResult.address)
       localStorage.setItem(STORAGE_KEY, addrResult.address)
+      trackEvent("wallet_connect")
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err)
       console.error("Wallet connect error:", msg)
@@ -76,13 +78,13 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const disconnect = useCallback(() => {
     setAddress(null)
     localStorage.removeItem(STORAGE_KEY)
+    trackEvent("wallet_disconnect")
   }, [])
 
   const signTransaction = useCallback(
     async (xdr: string): Promise<{ signedTxXdr: string }> => {
       if (!address) throw new Error("Wallet not connected")
-      const result = await freighterSignTx({
-        xdr,
+      const result = await freighterSignTx(xdr, {
         networkPassphrase: NETWORK_PASSPHRASE,
         address,
       })

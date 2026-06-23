@@ -1,21 +1,18 @@
 import { useMemo, useState, type FormEvent } from "react"
 import { useNavigate } from "react-router-dom"
 import { Lock, Info } from "lucide-react"
+import { Trans, useTranslation } from "react-i18next"
 import { Input, Label } from "@/components/ui/Input"
 import { Button } from "@/components/ui/Button"
 import { useWallet } from "@/hooks/useWallet"
 import { createTokenLock } from "@/lib/token-locker"
+import { trackEvent } from "@/lib/analytics"
 import { formatDate } from "@/lib/utils"
 
 const DAY = 86_400_000
-const PRESETS = [
-  { label: "30 days", days: 30 },
-  { label: "90 days", days: 90 },
-  { label: "6 months", days: 182 },
-  { label: "1 year", days: 365 },
-]
 
 export function CreateTokenLockForm() {
+  const { t } = useTranslation()
   const { address, signTransaction } = useWallet()
   const navigate = useNavigate()
 
@@ -26,6 +23,13 @@ export function CreateTokenLockForm() {
   const [vesting, setVesting] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const presets = [
+    { label: t("tokenForm.days30"), days: 30 },
+    { label: t("tokenForm.days90"), days: 90 },
+    { label: t("tokenForm.months6"), days: 182 },
+    { label: t("tokenForm.year1"), days: 365 },
+  ]
 
   const minDate = useMemo(() => new Date(Date.now() + DAY).toISOString().slice(0, 10), [])
   const unlockTs = unlockDate ? new Date(unlockDate).getTime() : 0
@@ -54,6 +58,7 @@ export function CreateTokenLockForm() {
         address!,
         signTransaction,
       )
+      trackEvent("lock_create_token", { vesting })
       navigate(`/app/lock/${id}`)
     } catch (err: unknown) {
       console.error("[createLock error]", err)
@@ -72,21 +77,21 @@ export function CreateTokenLockForm() {
   return (
     <form onSubmit={submit} className="flex flex-col gap-5">
       <div className="flex flex-col gap-2">
-        <Label htmlFor="token">Token contract address</Label>
+        <Label htmlFor="token">{t("tokenForm.tokenAddress")}</Label>
         <Input
           id="token"
-          placeholder="C… (Soroban token contract)"
+          placeholder={t("tokenForm.tokenPlaceholder")}
           value={tokenAddress}
           onChange={(e) => setTokenAddress(e.target.value)}
           className="font-mono"
         />
         <p className="text-xs text-muted-foreground">
-          The Soroban contract address of the token you want to lock.
+          {t("tokenForm.tokenHint")}
         </p>
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor="amount">Amount to lock</Label>
+        <Label htmlFor="amount">{t("tokenForm.amount")}</Label>
         <Input
           id="amount"
           type="number"
@@ -100,7 +105,7 @@ export function CreateTokenLockForm() {
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor="beneficiary">Beneficiary (optional)</Label>
+        <Label htmlFor="beneficiary">{t("tokenForm.beneficiary")}</Label>
         <Input
           id="beneficiary"
           placeholder={address ?? "G…"}
@@ -108,12 +113,12 @@ export function CreateTokenLockForm() {
           onChange={(e) => setBeneficiary(e.target.value)}
         />
         <p className="text-xs text-muted-foreground">
-          Who can withdraw once unlocked. Defaults to your address.
+          {t("tokenForm.beneficiaryHint")}
         </p>
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor="unlock">Unlock date</Label>
+        <Label htmlFor="unlock">{t("tokenForm.unlockDate")}</Label>
         <Input
           id="unlock"
           type="date"
@@ -122,9 +127,9 @@ export function CreateTokenLockForm() {
           onChange={(e) => setUnlockDate(e.target.value)}
         />
         <div className="flex flex-wrap gap-2">
-          {PRESETS.map((p) => (
+          {presets.map((p) => (
             <button
-              key={p.label}
+              key={p.days}
               type="button"
               onClick={() => applyPreset(p.days)}
               className="rounded-full border border-border bg-secondary px-3 py-1 text-xs font-medium transition-colors hover:border-primary/40 cursor-pointer"
@@ -143,9 +148,9 @@ export function CreateTokenLockForm() {
           className="mt-0.5 h-4 w-4 accent-[oklch(0.78_0.16_175)]"
         />
         <span className="text-sm">
-          <span className="font-medium">Linear vesting</span>
+          <span className="font-medium">{t("tokenForm.vestingLabel")}</span>
           <span className="block text-muted-foreground">
-            Release gradually from now until the unlock date, instead of all at once.
+            {t("tokenForm.vestingDesc")}
           </span>
         </span>
       </label>
@@ -153,25 +158,29 @@ export function CreateTokenLockForm() {
       <div className="flex items-start gap-2 rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm text-muted-foreground">
         <Info className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
         <span>
-          Locks are immutable: you can extend the unlock date later, but never shorten it.
+          {t("tokenForm.lockInfo")}
           {unlockTs > Date.now() && (
             <>
-              {" "}Funds unlock on{" "}
-              <span className="font-medium text-foreground">{formatDate(unlockTs)}</span>.
+              {" "}
+              <Trans i18nKey="tokenForm.fundsUnlockOn" values={{ date: formatDate(unlockTs) }}>
+                Funds unlock on <span className="font-medium text-foreground">{{ date: formatDate(unlockTs) } as unknown as string}</span>.
+              </Trans>
             </>
           )}
         </span>
       </div>
 
-      {error && (
-        <div className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
-          {error}
-        </div>
-      )}
+      <div aria-live="polite" aria-atomic="true">
+        {error && (
+          <div role="alert" className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+            {error}
+          </div>
+        )}
+      </div>
 
       <Button type="submit" size="lg" loading={submitting} disabled={!valid}>
         <Lock className="h-4 w-4" />
-        Lock tokens
+        {t("tokenForm.submit")}
       </Button>
     </form>
   )
