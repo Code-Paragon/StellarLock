@@ -179,6 +179,49 @@ function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }
           <LockProgressBar createdAt={lock.createdAt} unlockAt={lock.unlockAt} />
         </div>
 
+
+        {/* Vesting schedule */}
+        {lock.vesting && (
+          <div className="border-t border-border p-6">
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Vesting Schedule</h3>
+              <Badge variant="outline">Linear</Badge>
+            </div>
+            <div className="mb-4 grid gap-3 sm:grid-cols-2">
+              <div className="rounded-lg bg-secondary/40 p-3">
+                <p className="text-xs text-muted-foreground">Vesting start</p>
+                <p className="font-medium">{formatDateTime(lock.vesting.start)}</p>
+              </div>
+              <div className="rounded-lg bg-secondary/40 p-3">
+                <p className="text-xs text-muted-foreground">Vesting end</p>
+                <p className="font-medium">{formatDateTime(lock.vesting.end)}</p>
+              </div>
+            </div>
+            <div className="mb-3">
+              <div className="mb-2 flex justify-between text-sm">
+                <span className="text-muted-foreground">Progress</span>
+                <span className="font-medium tabular-nums">{Math.min(100, Math.max(0, Math.round(((now - lock.vesting.start) / (lock.vesting.end - lock.vesting.start)) * 100)))}%</span>
+              </div>
+              <div className="h-2 w-full overflow-hidden rounded-full bg-secondary">
+                <div className="h-full rounded-full bg-gradient-to-r from-primary to-primary/60 transition-all" style={{ width: `${Math.min(100, Math.max(0, ((now - lock.vesting.start) / (lock.vesting.end - lock.vesting.start)) * 100))}%` }} />
+              </div>
+            </div>
+            <div className="mt-4 grid gap-3 sm:grid-cols-3">
+              <div className="rounded-lg bg-secondary/30 p-3 text-center">
+                <p className="text-xs text-muted-foreground">Total</p>
+                <p className="font-semibold tabular-nums">{formatAmount(lock.amount)} {lock.token.symbol}</p>
+              </div>
+              <div className="rounded-lg bg-secondary/30 p-3 text-center">
+                <p className="text-xs text-muted-foreground">Released</p>
+                <p className="font-semibold tabular-nums text-success">{formatAmount(lock.vesting.released)} {lock.token.symbol}</p>
+              </div>
+              <div className="rounded-lg bg-secondary/30 p-3 text-center">
+                <p className="text-xs text-muted-foreground">Claimable</p>
+                <p className="font-semibold tabular-nums text-primary">{formatAmount(Math.max(0, (lock.amount * Math.min(now, lock.vesting.end) - lock.vesting.start) / Math.max(1, lock.vesting.end - lock.vesting.start)))} {lock.token.symbol}</p>
+              </div>
+            </div>
+          </div>
+        )}
         {(canWithdraw || canExtend) && (
           <div className="flex flex-col gap-3 border-t border-border p-6 sm:flex-row">
             {canWithdraw && (
