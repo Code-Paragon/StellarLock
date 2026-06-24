@@ -32,26 +32,24 @@ export function useLocksByToken(tokenAddress: string | undefined, offset = 0, li
 
 /** Lock count for a token (for pagination controls). */
 export function useLockCountByToken(tokenAddress: string | undefined) {
-  return useAsync(
-    () => (tokenAddress ? getLockCountByToken(tokenAddress) : Promise.resolve(0)),
-    [tokenAddress],
-  )
+  return useAsync(() => (tokenAddress ? getLockCountByToken(tokenAddress) : Promise.resolve(0)), [tokenAddress])
 }
 
 /** Connected user's locks, split into created vs received (token + LP combined). */
 export function useMyLocks(address: string | null, offset = 0, limit = 50) {
   return useAsync(async () => {
     if (!address) return { created: [] as Lock[], received: [] as Lock[], totalCreated: 0, totalReceived: 0 }
-    const [tCreated, lpCreated, tReceived, lpReceived, tCreatedCount, lpCreatedCount, tReceivedCount, lpReceivedCount] = await Promise.all([
-      getLocksByCreator(address, offset, limit),
-      getLpLocksByCreator(address, offset, limit),
-      getLocksByBeneficiary(address, offset, limit),
-      getLpLocksByBeneficiary(address, offset, limit),
-      getLockCountByCreator(address),
-      getLpLockCountByCreator(address),
-      getLockCountByBeneficiary(address),
-      getLpLockCountByBeneficiary(address),
-    ])
+    const [tCreated, lpCreated, tReceived, lpReceived, tCreatedCount, lpCreatedCount, tReceivedCount, lpReceivedCount] =
+      await Promise.all([
+        getLocksByCreator(address, offset, limit),
+        getLpLocksByCreator(address, offset, limit),
+        getLocksByBeneficiary(address, offset, limit),
+        getLpLocksByBeneficiary(address, offset, limit),
+        getLockCountByCreator(address),
+        getLpLockCountByCreator(address),
+        getLockCountByBeneficiary(address),
+        getLpLockCountByBeneficiary(address),
+      ])
     const created = [...tCreated, ...lpCreated]
     const received = [...tReceived, ...lpReceived].filter((l) => l.creator !== address)
     return {

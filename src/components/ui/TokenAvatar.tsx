@@ -12,7 +12,10 @@ export function TokenAvatar({
   size?: keyof typeof SIZES
   className?: string
 }) {
-  const letters = symbol.replace(/[^A-Za-z0-9]/g, "").slice(0, 2).toUpperCase()
+  const letters = symbol
+    .replace(/[^A-Za-z0-9]/g, "")
+    .slice(0, 2)
+    .toUpperCase()
   return (
     <div
       className={cn(

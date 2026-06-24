@@ -1,18 +1,5 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-  type ReactNode,
-} from "react"
-import {
-  isConnected,
-  requestAccess,
-  getAddress,
-  signTransaction as freighterSignTx,
-} from "@stellar/freighter-api"
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react"
+import { isConnected, requestAccess, getAddress, signTransaction as freighterSignTx } from "@stellar/freighter-api"
 import { trackEvent } from "@/lib/analytics"
 
 const STORAGE_KEY = "stellarlock:wallet"
@@ -38,13 +25,15 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     const saved = localStorage.getItem(STORAGE_KEY)
     if (!saved) return
     // Check freighter is still connected before restoring
-    isConnected().then((res) => {
-      if (res.isConnected) {
-        setAddress(saved)
-      } else {
-        localStorage.removeItem(STORAGE_KEY)
-      }
-    }).catch(() => localStorage.removeItem(STORAGE_KEY))
+    isConnected()
+      .then((res) => {
+        if (res.isConnected) {
+          setAddress(saved)
+        } else {
+          localStorage.removeItem(STORAGE_KEY)
+        }
+      })
+      .catch(() => localStorage.removeItem(STORAGE_KEY))
   }, [])
 
   const connect = useCallback(async () => {
@@ -90,9 +79,10 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       })
       if (import.meta.env.DEV) console.log("[signTransaction result]", result)
       if (result.error) {
-        const errMsg = typeof result.error === "string"
-          ? result.error
-          : (result.error as { message?: string }).message ?? JSON.stringify(result.error)
+        const errMsg =
+          typeof result.error === "string"
+            ? result.error
+            : ((result.error as { message?: string }).message ?? JSON.stringify(result.error))
         throw new Error(errMsg)
       }
       if (!result.signedTxXdr) throw new Error("Freighter returned empty transaction — did you approve it?")

@@ -104,10 +104,7 @@ export function CreateLpLockForm() {
               <span className="flex items-center gap-2 font-medium">
                 <span
                   aria-hidden="true"
-                  className={cn(
-                    "h-2 w-2 rounded-full",
-                    d.value === "aquarius" ? "bg-primary" : "bg-warning",
-                  )}
+                  className={cn("h-2 w-2 rounded-full", d.value === "aquarius" ? "bg-primary" : "bg-warning")}
                 />
                 {d.label}
               </span>
@@ -199,7 +196,11 @@ export function CreateLpLockForm() {
             <>
               {" "}
               <Trans i18nKey="lpForm.liquidityUnlockOn" values={{ date: formatDate(unlockTs) }}>
-                Liquidity unlocks on <span className="font-medium text-foreground">{{ date: formatDate(unlockTs) } as unknown as string}</span>.
+                Liquidity unlocks on{" "}
+                <span className="font-medium text-foreground">
+                  {{ date: formatDate(unlockTs) } as unknown as string}
+                </span>
+                .
               </Trans>
             </>
           )}

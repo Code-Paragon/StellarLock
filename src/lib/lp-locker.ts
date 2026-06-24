@@ -1,8 +1,4 @@
-import {
-  Address,
-  nativeToScVal,
-  xdr,
-} from "@stellar/stellar-sdk"
+import { Address, nativeToScVal, xdr } from "@stellar/stellar-sdk"
 import type { Dex, Lock } from "@/types/lock"
 import { CONTRACTS, simulateCall, submitCall } from "@/lib/stellar"
 
@@ -41,20 +37,16 @@ function dexArg(dex: Dex): xdr.ScVal {
 function toLpLock(raw: Record<string, unknown>): Lock {
   const poolShare = raw.pool_share as string
   const dexRaw = raw.dex as { tag?: string } | string
-  const dex: Dex = (typeof dexRaw === "object" && dexRaw?.tag
-    ? dexRaw.tag.toLowerCase()
-    : String(dexRaw).toLowerCase()) as Dex
+  const dex: Dex = (
+    typeof dexRaw === "object" && dexRaw?.tag ? dexRaw.tag.toLowerCase() : String(dexRaw).toLowerCase()
+  ) as Dex
   const tokenA = raw.token_a as string
   const tokenB = raw.token_b as string
 
   return {
     id: String(raw.id),
     kind: "lp",
-    status: raw.withdrawn
-      ? "withdrawn"
-      : Number(raw.unlock_at) * 1000 <= Date.now()
-      ? "unlockable"
-      : "locked",
+    status: raw.withdrawn ? "withdrawn" : Number(raw.unlock_at) * 1000 <= Date.now() ? "unlockable" : "locked",
     token: {
       address: poolShare,
       symbol: `${tokenA.slice(0, 4)}-${tokenB.slice(0, 4)} LP`,
@@ -78,53 +70,32 @@ function toLpLock(raw: Record<string, unknown>): Lock {
 const DEFAULT_PAGE_SIZE = 50
 
 function paginationArgs(offset: number, limit: number): xdr.ScVal[] {
-  return [
-    nativeToScVal(offset, { type: "u32" }),
-    nativeToScVal(limit, { type: "u32" }),
-  ]
+  return [nativeToScVal(offset, { type: "u32" }), nativeToScVal(limit, { type: "u32" })]
 }
 
-export async function getLpLocksByCreator(
-  address: string,
-  offset = 0,
-  limit = DEFAULT_PAGE_SIZE,
-): Promise<Lock[]> {
-  const raw = await simulateCall<Record<string, unknown>[]>(
-    CONTRACTS.lpLocker,
-    "get_locks_by_creator",
-    [addressArg(address), ...paginationArgs(offset, limit)],
-  )
+export async function getLpLocksByCreator(address: string, offset = 0, limit = DEFAULT_PAGE_SIZE): Promise<Lock[]> {
+  const raw = await simulateCall<Record<string, unknown>[]>(CONTRACTS.lpLocker, "get_locks_by_creator", [
+    addressArg(address),
+    ...paginationArgs(offset, limit),
+  ])
   return (raw ?? []).map(toLpLock)
 }
 
-export async function getLpLocksByBeneficiary(
-  address: string,
-  offset = 0,
-  limit = DEFAULT_PAGE_SIZE,
-): Promise<Lock[]> {
-  const raw = await simulateCall<Record<string, unknown>[]>(
-    CONTRACTS.lpLocker,
-    "get_locks_by_beneficiary",
-    [addressArg(address), ...paginationArgs(offset, limit)],
-  )
+export async function getLpLocksByBeneficiary(address: string, offset = 0, limit = DEFAULT_PAGE_SIZE): Promise<Lock[]> {
+  const raw = await simulateCall<Record<string, unknown>[]>(CONTRACTS.lpLocker, "get_locks_by_beneficiary", [
+    addressArg(address),
+    ...paginationArgs(offset, limit),
+  ])
   return (raw ?? []).map(toLpLock)
 }
 
 export async function getLpLockCountByCreator(address: string): Promise<number> {
-  const raw = await simulateCall<number>(
-    CONTRACTS.lpLocker,
-    "get_lock_count_by_creator",
-    [addressArg(address)],
-  )
+  const raw = await simulateCall<number>(CONTRACTS.lpLocker, "get_lock_count_by_creator", [addressArg(address)])
   return Number(raw ?? 0)
 }
 
 export async function getLpLockCountByBeneficiary(address: string): Promise<number> {
-  const raw = await simulateCall<number>(
-    CONTRACTS.lpLocker,
-    "get_lock_count_by_beneficiary",
-    [addressArg(address)],
-  )
+  const raw = await simulateCall<number>(CONTRACTS.lpLocker, "get_lock_count_by_beneficiary", [addressArg(address)])
   return Number(raw ?? 0)
 }
 

@@ -3,11 +3,7 @@ import { Bell, BellOff, Webhook, Check } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/Button"
 import { Input } from "@/components/ui/Input"
-import {
-  useNotificationPrefs,
-  useBrowserNotifications,
-  scheduleUnlockReminder,
-} from "@/hooks/useNotifications"
+import { useNotificationPrefs, useBrowserNotifications, scheduleUnlockReminder } from "@/hooks/useNotifications"
 
 interface Props {
   lockId: string
@@ -67,11 +63,7 @@ export function NotificationSettings({ lockId, unlockAt }: Props) {
               <p className="text-xs text-muted-foreground">{t("notifications.browserDesc")}</p>
             </div>
           </div>
-          <Button
-            variant={prefs.browser ? "primary" : "outline"}
-            size="sm"
-            onClick={toggleBrowser}
-          >
+          <Button variant={prefs.browser ? "primary" : "outline"} size="sm" onClick={toggleBrowser}>
             {prefs.browser ? t("notifications.enabled") : t("notifications.enable")}
           </Button>
         </div>
@@ -91,11 +83,7 @@ export function NotificationSettings({ lockId, unlockAt }: Props) {
               onChange={(e) => setWebhookInput(e.target.value)}
               className="flex-1 font-mono text-xs"
             />
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={saveWebhook}
-            >
+            <Button variant="outline" size="sm" onClick={saveWebhook}>
               {webhookSaved ? <Check className="h-4 w-4 text-success" /> : t("notifications.save")}
             </Button>
           </div>

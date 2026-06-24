@@ -35,9 +35,7 @@ export function LockCard({ lock }: { lock: Lock }) {
             <p className="text-xs text-muted-foreground">{t("lockCard.lockedAmount")}</p>
             <p className="text-lg font-semibold tabular-nums">
               {formatAmount(lock.amount, { compact: true })}{" "}
-              <span className="text-sm font-normal text-muted-foreground">
-                ({formatUsd(lock.usdValue)})
-              </span>
+              <span className="text-sm font-normal text-muted-foreground">({formatUsd(lock.usdValue)})</span>
             </p>
           </div>
           <div className="text-right">
@@ -47,11 +45,7 @@ export function LockCard({ lock }: { lock: Lock }) {
         </div>
 
         <div className="mt-4">
-          <LockProgressBar
-            createdAt={lock.createdAt}
-            unlockAt={lock.unlockAt}
-            showLabel={false}
-          />
+          <LockProgressBar createdAt={lock.createdAt} unlockAt={lock.unlockAt} showLabel={false} />
         </div>
 
         <div className="mt-4 flex items-center justify-between border-t border-border pt-3 text-xs text-muted-foreground">

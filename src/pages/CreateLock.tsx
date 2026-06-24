@@ -18,26 +18,46 @@ export function CreateLock() {
     <div className="mx-auto max-w-xl px-4 py-10">
       <Helmet>
         <title>Create a Lock | StellarLock</title>
-        <meta name="description" content="Lock tokens or LP positions in an immutable Soroban smart contract on Stellar." />
+        <meta
+          name="description"
+          content="Lock tokens or LP positions in an immutable Soroban smart contract on Stellar."
+        />
       </Helmet>
       <div className="mb-6 text-center">
         <h1 className="text-2xl font-bold tracking-tight">{t("createLock.title")}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {t("createLock.subtitle")}
-        </p>
+        <p className="mt-1 text-sm text-muted-foreground">{t("createLock.subtitle")}</p>
       </div>
 
       <ConnectGate title={t("connectGate.title")}>
-        <div role="tablist" aria-label={t("createLock.title")} className="mb-5 grid grid-cols-2 gap-2 rounded-xl border border-border bg-card p-1">
-          <TabButton active={tab === "token"} onClick={() => setTab("token")} icon={<Coins className="h-4 w-4" />} controlsId="panel-token">
+        <div
+          role="tablist"
+          aria-label={t("createLock.title")}
+          className="mb-5 grid grid-cols-2 gap-2 rounded-xl border border-border bg-card p-1"
+        >
+          <TabButton
+            active={tab === "token"}
+            onClick={() => setTab("token")}
+            icon={<Coins className="h-4 w-4" />}
+            controlsId="panel-token"
+          >
             {t("createLock.tabToken")}
           </TabButton>
-          <TabButton active={tab === "lp"} onClick={() => setTab("lp")} icon={<Droplets className="h-4 w-4" />} controlsId="panel-lp">
+          <TabButton
+            active={tab === "lp"}
+            onClick={() => setTab("lp")}
+            icon={<Droplets className="h-4 w-4" />}
+            controlsId="panel-lp"
+          >
             {t("createLock.tabLp")}
           </TabButton>
         </div>
 
-        <Card className="p-6" role="tabpanel" id={`panel-${tab}`} aria-label={tab === "token" ? t("createLock.tabToken") : t("createLock.tabLp")}>
+        <Card
+          className="p-6"
+          role="tabpanel"
+          id={`panel-${tab}`}
+          aria-label={tab === "token" ? t("createLock.tabToken") : t("createLock.tabLp")}
+        >
           {tab === "token" ? <CreateTokenLockForm /> : <CreateLpLockForm />}
         </Card>
       </ConnectGate>

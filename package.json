@@ -6,7 +6,11 @@
   "scripts": {
     "dev": "vite --host",
     "build": "tsc -b && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "dependencies": {
     "@creit.tech/stellar-wallets-kit": "^1.7.6",
@@ -25,13 +29,31 @@
     "tailwind-merge": "^3.3.1"
   },
   "devDependencies": {
+    "@eslint/js": "^9",
     "@tailwindcss/vite": "^4.3.1",
     "@types/node": "^24",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^6.0.2",
+    "eslint": "^9",
+    "eslint-config-prettier": "^10",
+    "eslint-plugin-react-hooks": "^5",
+    "eslint-plugin-react-refresh": "^0.4",
+    "husky": "^9",
+    "lint-staged": "^15",
+    "prettier": "^3",
     "tailwindcss": "^4",
     "typescript": "5.7.3",
+    "typescript-eslint": "^8",
     "vite": "^8"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,css,html}": [
+      "prettier --write"
+    ]
   }
 }

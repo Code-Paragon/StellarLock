@@ -15,7 +15,7 @@ export const NETWORK = {
   passphrase: isMainnet ? Networks.PUBLIC : Networks.TESTNET,
   rpcUrl: import.meta.env.VITE_RPC_URL || "https://soroban-testnet.stellar.org",
   horizonUrl: import.meta.env.VITE_HORIZON_URL || "https://horizon-testnet.stellar.org",
-  networkName: (isMainnet ? "public" : "testnet") as "public" | "testnet",
+  networkName: (isMainnet ? "public" : "testnet"),
 }
 
 export const CONTRACTS = {
@@ -45,11 +45,7 @@ function simError(result: unknown): string {
 
 // ── Simulate (read-only) ──────────────────────────────────────────────────────
 
-export async function simulateCall<T>(
-  contractId: string,
-  method: string,
-  args: xdr.ScVal[],
-): Promise<T> {
+export async function simulateCall<T>(contractId: string, method: string, args: xdr.ScVal[]): Promise<T> {
   const rpc = getRpc()
 
   const dummySource = {
@@ -59,7 +55,7 @@ export async function simulateCall<T>(
   }
 
   const contract = new Contract(contractId)
-  const tx = new TransactionBuilder(dummySource as never, {
+  const tx = new TransactionBuilder(dummySource, {
     fee: BASE_FEE,
     networkPassphrase: NETWORK.passphrase,
   })
@@ -74,7 +70,7 @@ export async function simulateCall<T>(
     throw new Error(`Simulation error: ${simError(result)}`)
   }
 
-  const retval = (result as SorobanRpc.Api.SimulateTransactionSuccessResponse).result?.retval
+  const retval = (result).result?.retval
   if (!retval) return undefined as T
   return scValToNative(retval) as T
 }
@@ -111,9 +107,7 @@ export async function submitCall(
 
   const { signedTxXdr } = await signTransaction(preparedTx.toXDR())
 
-  const sendResult = await rpc.sendTransaction(
-    TransactionBuilder.fromXDR(signedTxXdr, NETWORK.passphrase),
-  )
+  const sendResult = await rpc.sendTransaction(TransactionBuilder.fromXDR(signedTxXdr, NETWORK.passphrase))
   if (import.meta.env.DEV) console.log("[submitCall send]", sendResult)
 
   if (sendResult.status === "ERROR") {
@@ -135,11 +129,7 @@ export async function submitCall(
 // ── Token helpers ────────────────────────────────────────────────────────────
 
 export async function getTokenBalance(tokenAddress: string, owner: string): Promise<number> {
-  const raw = await simulateCall<bigint>(
-    tokenAddress,
-    "balance",
-    [new Address(owner).toScVal()],
-  )
+  const raw = await simulateCall<bigint>(tokenAddress, "balance", [new Address(owner).toScVal()])
   return Number(raw ?? 0n) / 1e7
 }
 

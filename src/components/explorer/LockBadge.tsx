@@ -31,8 +31,8 @@ export function LockBadge({ summary }: { summary: TokenLockSummary }) {
         <div className="leading-tight">
           <p className="text-sm font-semibold text-success">Locked on StellarLock</p>
           <p className="text-xs text-muted-foreground">
-            {summary.activeLocks} active lock{summary.activeLocks === 1 ? "" : "s"} ·{" "}
-            {formatUsd(summary.totalUsdValue)} secured
+            {summary.activeLocks} active lock{summary.activeLocks === 1 ? "" : "s"} · {formatUsd(summary.totalUsdValue)}{" "}
+            secured
           </p>
         </div>
       </div>

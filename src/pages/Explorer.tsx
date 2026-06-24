@@ -24,7 +24,10 @@ export function Explorer() {
       {data && (
         <Helmet>
           <title>{data.token.symbol} Liquidity Locks | StellarLock</title>
-          <meta name="description" content={`${formatAmount(data.totalLocked)} ${data.token.symbol} locked across ${data.activeLocks} active locks on StellarLock.`} />
+          <meta
+            name="description"
+            content={`${formatAmount(data.totalLocked)} ${data.token.symbol} locked across ${data.activeLocks} active locks on StellarLock.`}
+          />
         </Helmet>
       )}
       <Link
@@ -103,9 +106,7 @@ export function Explorer() {
           {/* Shareable badge */}
           <section className="rounded-2xl border border-border bg-card p-6">
             <h2 className="text-lg font-semibold">{t("explorer.shareTitle")}</h2>
-            <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-              {t("explorer.shareDesc")}
-            </p>
+            <p className="mt-1 max-w-2xl text-sm text-muted-foreground">{t("explorer.shareDesc")}</p>
             <div className="mt-5">
               <LockBadge summary={data} />
             </div>
@@ -149,7 +150,9 @@ function NotFound({ query }: { query: string }) {
       <h1 className="text-xl font-semibold">{t("explorer.noLocksTitle")}</h1>
       <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
         <Trans i18nKey="explorer.noLocksDesc" values={{ query: shortAddress(query, 6, 6) }}>
-          We couldn&apos;t find any locks for <span className="font-mono text-foreground">{{ query: shortAddress(query, 6, 6) } as unknown as string}</span>.
+          We couldn&apos;t find any locks for{" "}
+          <span className="font-mono text-foreground">{{ query: shortAddress(query, 6, 6) } as unknown as string}</span>
+          .
         </Trans>
       </p>
       <div className="mt-6">

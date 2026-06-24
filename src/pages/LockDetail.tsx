@@ -19,12 +19,7 @@ import { CopyButton } from "@/components/ui/CopyButton"
 import { CountdownTimer } from "@/components/ui/CountdownTimer"
 import { LockProgressBar } from "@/components/ui/LockProgressBar"
 import { NotificationSettings } from "@/components/locks/NotificationSettings"
-import {
-  formatAmount,
-  formatUsd,
-  formatDateTime,
-  shortAddress,
-} from "@/lib/utils"
+import { formatAmount, formatUsd, formatDateTime, shortAddress } from "@/lib/utils"
 import type { Lock } from "@/types/lock"
 
 export function LockDetail() {
@@ -45,9 +40,7 @@ export function LockDetail() {
     return (
       <div className="mx-auto max-w-3xl px-4 py-20 text-center md:px-6">
         <h1 className="text-2xl font-bold">{t("lockDetail.notFoundTitle")}</h1>
-        <p className="mt-2 text-muted-foreground">
-          {t("lockDetail.notFoundDesc", { id })}
-        </p>
+        <p className="mt-2 text-muted-foreground">{t("lockDetail.notFoundDesc", { id })}</p>
         <Link to="/app/locks">
           <Button variant="outline" className="mt-6">
             <ArrowLeft className="h-4 w-4" />
@@ -61,8 +54,14 @@ export function LockDetail() {
   return (
     <>
       <Helmet>
-        <title>Lock #{lock.id} — {formatAmount(lock.amount)} {lock.token.symbol} locked until {formatDateTime(lock.unlockAt)} | StellarLock</title>
-        <meta name="description" content={`Lock #${lock.id}: ${formatAmount(lock.amount)} ${lock.token.symbol} locked until ${formatDateTime(lock.unlockAt)} on StellarLock.`} />
+        <title>
+          Lock #{lock.id} — {formatAmount(lock.amount)} {lock.token.symbol} locked until {formatDateTime(lock.unlockAt)}{" "}
+          | StellarLock
+        </title>
+        <meta
+          name="description"
+          content={`Lock #${lock.id}: ${formatAmount(lock.amount)} ${lock.token.symbol} locked until ${formatDateTime(lock.unlockAt)} on StellarLock.`}
+        />
       </Helmet>
       <LockDetailView lock={lock} onChange={reload} />
     </>
@@ -82,18 +81,14 @@ function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }
   const vestingClaimable = lock.vesting
     ? Math.max(
         0,
-        lock.amount *
-          Math.max(0, Math.min(now, lock.vesting.end) - lock.vesting.start) /
+        (lock.amount * Math.max(0, Math.min(now, lock.vesting.end) - lock.vesting.start)) /
           Math.max(1, lock.vesting.end - lock.vesting.start) -
           lock.vesting.released,
       )
     : 0
 
   const canWithdraw =
-    isBeneficiary &&
-    lock.status !== "withdrawn" &&
-    lock.unlockAt <= now &&
-    (lock.vesting ? vestingClaimable > 0 : true)
+    isBeneficiary && lock.status !== "withdrawn" && lock.unlockAt <= now && (lock.vesting ? vestingClaimable > 0 : true)
   const canExtend = isCreator && lock.status !== "withdrawn"
   const canTransfer = isBeneficiary && lock.status !== "withdrawn"
 
@@ -235,7 +230,6 @@ function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }
           <LockProgressBar createdAt={lock.createdAt} unlockAt={lock.unlockAt} />
         </div>
 
-
         {/* Vesting schedule */}
         {lock.vesting && (
           <div className="border-t border-border p-6">
@@ -256,31 +250,49 @@ function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }
             <div className="mb-3">
               <div className="mb-2 flex justify-between text-sm">
                 <span className="text-muted-foreground">Progress</span>
-                <span className="font-medium tabular-nums">{Math.min(100, Math.max(0, Math.round(((now - lock.vesting.start) / (lock.vesting.end - lock.vesting.start)) * 100)))}%</span>
+                <span className="font-medium tabular-nums">
+                  {Math.min(
+                    100,
+                    Math.max(
+                      0,
+                      Math.round(((now - lock.vesting.start) / (lock.vesting.end - lock.vesting.start)) * 100),
+                    ),
+                  )}
+                  %
+                </span>
               </div>
               <div className="h-2 w-full overflow-hidden rounded-full bg-secondary">
-                <div className="h-full rounded-full bg-gradient-to-r from-primary to-primary/60 transition-all" style={{ width: `${Math.min(100, Math.max(0, ((now - lock.vesting.start) / (lock.vesting.end - lock.vesting.start)) * 100))}%` }} />
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-primary to-primary/60 transition-all"
+                  style={{
+                    width: `${Math.min(100, Math.max(0, ((now - lock.vesting.start) / (lock.vesting.end - lock.vesting.start)) * 100))}%`,
+                  }}
+                />
               </div>
             </div>
             <div className="mt-4 grid gap-3 sm:grid-cols-3">
               <div className="rounded-lg bg-secondary/30 p-3 text-center">
                 <p className="text-xs text-muted-foreground">Total</p>
-                <p className="font-semibold tabular-nums">{formatAmount(lock.amount)} {lock.token.symbol}</p>
+                <p className="font-semibold tabular-nums">
+                  {formatAmount(lock.amount)} {lock.token.symbol}
+                </p>
               </div>
               <div className="rounded-lg bg-secondary/30 p-3 text-center">
                 <p className="text-xs text-muted-foreground">Released</p>
-                <p className="font-semibold tabular-nums text-success">{formatAmount(lock.vesting.released)} {lock.token.symbol}</p>
+                <p className="font-semibold tabular-nums text-success">
+                  {formatAmount(lock.vesting.released)} {lock.token.symbol}
+                </p>
               </div>
               <div className="rounded-lg bg-secondary/30 p-3 text-center">
                 <p className="text-xs text-muted-foreground">Claimable</p>
-                <p className="font-semibold tabular-nums text-primary">{formatAmount(vestingClaimable)} {lock.token.symbol}</p>
+                <p className="font-semibold tabular-nums text-primary">
+                  {formatAmount(vestingClaimable)} {lock.token.symbol}
+                </p>
               </div>
             </div>
           </div>
         )}
-        {(isBeneficiary || isCreator) && (
-          <NotificationSettings lockId={lock.id} unlockAt={lock.unlockAt} />
-        )}
+        {(isBeneficiary || isCreator) && <NotificationSettings lockId={lock.id} unlockAt={lock.unlockAt} />}
 
         {(canWithdraw || canExtend || canTransfer) && (
           <div className="flex flex-col gap-3 border-t border-border p-6 sm:flex-row">
@@ -318,13 +330,16 @@ function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }
         )}
 
         {extendOpen && canExtend && (
-          <div ref={extendPanelRef} role="region" aria-label={t("lockDetail.extendLock")} className="border-t border-border bg-secondary/30 p-6">
+          <div
+            ref={extendPanelRef}
+            role="region"
+            aria-label={t("lockDetail.extendLock")}
+            className="border-t border-border bg-secondary/30 p-6"
+          >
             <label className="text-sm font-medium" htmlFor="new-unlock">
               {t("lockDetail.newUnlockDate")}
             </label>
-            <p className="mb-3 text-xs text-muted-foreground">
-              {t("lockDetail.extendHint")}
-            </p>
+            <p className="mb-3 text-xs text-muted-foreground">{t("lockDetail.extendHint")}</p>
             <div className="flex flex-col gap-3 sm:flex-row">
               <Input
                 id="new-unlock"
@@ -341,13 +356,16 @@ function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }
         )}
 
         {transferOpen && canTransfer && (
-          <div ref={transferPanelRef} role="region" aria-label={t("lockDetail.transferBeneficiary")} className="border-t border-border bg-secondary/30 p-6">
+          <div
+            ref={transferPanelRef}
+            role="region"
+            aria-label={t("lockDetail.transferBeneficiary")}
+            className="border-t border-border bg-secondary/30 p-6"
+          >
             <label className="text-sm font-medium" htmlFor="new-beneficiary">
               {t("lockDetail.newBeneficiary")}
             </label>
-            <p className="mb-3 text-xs text-muted-foreground">
-              {t("lockDetail.transferHint")}
-            </p>
+            <p className="mb-3 text-xs text-muted-foreground">{t("lockDetail.transferHint")}</p>
             <div className="flex flex-col gap-3 sm:flex-row">
               <Input
                 id="new-beneficiary"
@@ -382,15 +400,7 @@ function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }
   )
 }
 
-function Field({
-  label,
-  children,
-  className,
-}: {
-  label: string
-  children: React.ReactNode
-  className?: string
-}) {
+function Field({ label, children, className }: { label: string; children: React.ReactNode; className?: string }) {
   return (
     <div className={className}>
       <div className="p-5">

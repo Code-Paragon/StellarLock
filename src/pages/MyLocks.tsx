@@ -74,7 +74,11 @@ export function MyLocks() {
         </header>
 
         <div className="mt-8 grid gap-4 sm:grid-cols-3">
-          <StatCard label={t("myLocks.locksCreated")} value={String(stats.count)} icon={<Layers className="h-4 w-4" />} />
+          <StatCard
+            label={t("myLocks.locksCreated")}
+            value={String(stats.count)}
+            icon={<Layers className="h-4 w-4" />}
+          />
           <StatCard label={t("myLocks.totalValueLocked")} value={formatUsd(stats.totalValue)} />
           <StatCard
             label={t("myLocks.readyToWithdraw")}

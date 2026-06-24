@@ -1,13 +1,7 @@
 import { Link } from "react-router-dom"
 import { Helmet } from "react-helmet-async"
 import { useTranslation } from "react-i18next"
-import {
-  Lock,
-  Coins,
-  ShieldCheck,
-  CalendarClock,
-  ArrowRight,
-} from "lucide-react"
+import { Lock, Coins, ShieldCheck, CalendarClock, ArrowRight } from "lucide-react"
 import { TokenSearchBar } from "@/components/explorer/TokenSearchBar"
 import { Card } from "@/components/ui/Card"
 import { StatCard } from "@/components/ui/StatCard"
@@ -22,9 +16,7 @@ const activeLocks = MOCK_LOCKS.filter((l) => l.status !== "withdrawn")
 const totalValueLocked = activeLocks.reduce((s, l) => s + l.usdValue, 0)
 const uniqueTokens = new Set(activeLocks.map((l) => l.token.address)).size
 
-const recentLocks = [...MOCK_LOCKS]
-  .sort((a, b) => b.createdAt - a.createdAt)
-  .slice(0, 5)
+const recentLocks = [...MOCK_LOCKS].sort((a, b) => b.createdAt - a.createdAt).slice(0, 5)
 
 const upcomingUnlocks = activeLocks
   .filter((l) => l.status === "locked")
@@ -32,15 +24,16 @@ const upcomingUnlocks = activeLocks
   .slice(0, 5)
 
 const tokenGroups = Object.values(
-  activeLocks.reduce<
-    Record<string, { token: (typeof activeLocks)[0]["token"]; count: number; totalValue: number }>
-  >((acc, lock) => {
-    const key = lock.token.address
-    if (!acc[key]) acc[key] = { token: lock.token, count: 0, totalValue: 0 }
-    acc[key].count++
-    acc[key].totalValue += lock.usdValue
-    return acc
-  }, {}),
+  activeLocks.reduce<Record<string, { token: (typeof activeLocks)[0]["token"]; count: number; totalValue: number }>>(
+    (acc, lock) => {
+      const key = lock.token.address
+      if (!acc[key]) acc[key] = { token: lock.token, count: 0, totalValue: 0 }
+      acc[key].count++
+      acc[key].totalValue += lock.usdValue
+      return acc
+    },
+    {},
+  ),
 ).sort((a, b) => b.totalValue - a.totalValue)
 
 export function Discover() {
@@ -140,9 +133,7 @@ export function Discover() {
                     {formatAmount(lock.amount)} · unlocks {formatDate(lock.unlockAt)}
                   </p>
                 </div>
-                <span className="shrink-0 text-xs text-muted-foreground">
-                  {formatDate(lock.unlockAt)}
-                </span>
+                <span className="shrink-0 text-xs text-muted-foreground">{formatDate(lock.unlockAt)}</span>
               </Link>
             ))}
           </Card>

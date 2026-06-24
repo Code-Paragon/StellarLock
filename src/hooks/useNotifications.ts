@@ -74,9 +74,10 @@ export function scheduleUnlockReminder(lockId: string, unlockAt: number) {
     if (delay > 0 && delay < 2_147_483_647) {
       setTimeout(() => {
         new Notification("StellarLock", {
-          body: label === "now"
-            ? `Lock #${lockId} has unlocked! You can now withdraw your tokens.`
-            : `Lock #${lockId} unlocks in ${label}.`,
+          body:
+            label === "now"
+              ? `Lock #${lockId} has unlocked! You can now withdraw your tokens.`
+              : `Lock #${lockId} unlocks in ${label}.`,
           icon: "/favicon.svg",
         })
       }, delay)
