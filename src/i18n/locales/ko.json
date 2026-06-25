@@ -209,5 +209,11 @@
     "unlocksIn": "잠금 해제까지",
     "lock": "잠금 #{{id}}",
     "view": "보기"
+  },
+  "wallet": {
+    "disconnected": "지갑 연결 해제됨",
+    "disconnectedDesc": "Freighter 지갑이 연결 해제되었거나 확장 프로그램을 사용할 수 없게 되었습니다. 계속하려면 다시 연결하세요.",
+    "networkChanged": "네트워크 변경됨",
+    "networkChangedDesc": "지갑의 네트워크가 변경되었습니다. StellarLock 사용을 계속하려면 다시 연결하세요."
   }
 }

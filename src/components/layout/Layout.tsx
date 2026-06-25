@@ -2,6 +2,7 @@ import { Link, Outlet } from "react-router-dom"
 import { Lock } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { Navbar } from "@/components/layout/Navbar"
+import { WalletAlerts } from "@/components/layout/WalletAlerts"
 
 export function Layout() {
   const { t } = useTranslation()
@@ -14,6 +15,7 @@ export function Layout() {
       >
         {t("common.skipToContent")}
       </a>
+      <WalletAlerts />
       <Navbar />
       <main id="main-content" className="flex-1">
         <Outlet />
