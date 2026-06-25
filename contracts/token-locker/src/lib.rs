@@ -4,6 +4,17 @@ use soroban_sdk::{
     Address, Env, Vec, Symbol,
 };
 
+// ── TTL constants ─────────────────────────────────────────────────────────────
+// 5-second ledger close → 17 280 ledgers per day.
+const LEDGERS_PER_DAY: u32 = 17_280;
+// Persistent lock/index entries are bumped to ~1 year on every write.
+// Setting threshold == bump means we always top up to the network max.
+const PERSISTENT_BUMP: u32 = 365 * LEDGERS_PER_DAY; // ~6 307 200 ledgers
+const PERSISTENT_THRESHOLD: u32 = PERSISTENT_BUMP;
+// Instance storage (NextId) only needs to survive between administrative calls.
+const INSTANCE_BUMP: u32 = 30 * LEDGERS_PER_DAY;
+const INSTANCE_THRESHOLD: u32 = 7 * LEDGERS_PER_DAY;
+
 // ── Storage keys ─────────────────────────────────────────────────────────────
 
 #[contracttype]
@@ -59,6 +70,7 @@ pub struct Lock {
 fn next_id(env: &Env) -> u64 {
     let id: u64 = env.storage().instance().get(&DataKey::NextId).unwrap_or(1000);
     env.storage().instance().set(&DataKey::NextId, &(id + 1));
+    env.storage().instance().extend_ttl(INSTANCE_THRESHOLD, INSTANCE_BUMP);
     id
 }
 
@@ -66,6 +78,7 @@ fn push_index(env: &Env, key: DataKey, id: u64) {
     let mut ids: Vec<u64> = env.storage().persistent().get(&key).unwrap_or(vec![env]);
     ids.push_back(id);
     env.storage().persistent().set(&key, &ids);
+    env.storage().persistent().extend_ttl(&key, PERSISTENT_THRESHOLD, PERSISTENT_BUMP);
 }
 
 fn remove_from_index(env: &Env, key: DataKey, id: u64) {
@@ -77,6 +90,7 @@ fn remove_from_index(env: &Env, key: DataKey, id: u64) {
         }
     }
     env.storage().persistent().set(&key, &filtered);
+    env.storage().persistent().extend_ttl(&key, PERSISTENT_THRESHOLD, PERSISTENT_BUMP);
 }
 
 fn get_index(env: &Env, key: DataKey) -> Vec<u64> {
@@ -91,7 +105,9 @@ fn load_lock(env: &Env, id: u64) -> Lock {
 }
 
 fn save_lock(env: &Env, lock: &Lock) {
-    env.storage().persistent().set(&DataKey::Lock(lock.id), lock);
+    let key = DataKey::Lock(lock.id);
+    env.storage().persistent().set(&key, lock);
+    env.storage().persistent().extend_ttl(&key, PERSISTENT_THRESHOLD, PERSISTENT_BUMP);
 }
 
 fn collect_locks_paginated(env: &Env, ids: Vec<u64>, offset: u32, limit: u32) -> Vec<Lock> {
@@ -297,6 +313,16 @@ impl TokenLocker {
             (),
         );
         Ok(())
+    }
+
+    /// Permissionless TTL maintenance — anyone can call this to prevent a lock
+    /// entry from being archived before the beneficiary withdraws.
+    pub fn bump_lock_ttl(env: Env, id: u64) {
+        let key = DataKey::Lock(id);
+        if env.storage().persistent().has(&key) {
+            env.storage().persistent().extend_ttl(&key, PERSISTENT_THRESHOLD, PERSISTENT_BUMP);
+        }
+        env.storage().instance().extend_ttl(INSTANCE_THRESHOLD, INSTANCE_BUMP);
     }
 
     // ── Read methods ──────────────────────────────────────────────────────────
