@@ -114,8 +114,12 @@ export async function submitCall(
     throw new Error(`Send error: ${sendResult.errorResult?.toXDR("base64") ?? "unknown"}`)
   }
 
+  const MAX_POLL_ATTEMPTS = 40
   let getResult = await rpc.getTransaction(sendResult.hash)
-  while (getResult.status === SorobanRpc.Api.GetTransactionStatus.NOT_FOUND) {
+  for (let attempts = 0; getResult.status === SorobanRpc.Api.GetTransactionStatus.NOT_FOUND; attempts++) {
+    if (attempts >= MAX_POLL_ATTEMPTS) {
+      throw new Error(`Transaction ${sendResult.hash} not found after ${MAX_POLL_ATTEMPTS} attempts (~60s)`)
+    }
     await new Promise((r) => setTimeout(r, 1500))
     getResult = await rpc.getTransaction(sendResult.hash)
   }
