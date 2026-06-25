@@ -94,6 +94,37 @@ describe("Lock Creation Edge Cases", () => {
     expect(submitButton).not.toBeDisabled()
   })
 
+  it("should handle wallet disconnection during flow", async () => {
+    const user = userEvent.setup()
+    render(<CreateTokenLockForm />)
+
+    const tokenInput = screen.getByPlaceholderText(/token/i)
+    const amountInput = screen.getByDisplayValue("")
+    const dateInput = screen.getByLabelText(/unlock date/i) as HTMLInputElement
+
+    await user.type(tokenInput, "CBVOBNRDOMUMERKKXKYY3NHE4HHE4AQIZVMWUNUZKXNQPQHCSIKUBVJZ")
+    await user.type(amountInput, "100")
+
+    const futureDate = new Date()
+    futureDate.setDate(futureDate.getDate() + 30)
+    const dateStr = futureDate.toISOString().split("T")[0]
+    await user.type(dateInput, dateStr)
+
+    const submitButton = screen.getByRole("button", { name: /lock tokens/i })
+    await user.click(submitButton)
+
+    // Simulate wallet disconnection
+    mockWallet.isConnected = false
+    mockWallet.signTransaction.mockRejectedValueOnce(new Error("Wallet disconnected"))
+
+    const confirmButton = await screen.findByText(/confirm/i)
+    await user.click(confirmButton)
+
+    await waitFor(() => {
+      expect(screen.getByText(/disconnected|connection/i)).toBeInTheDocument()
+    })
+  })
+
   it("should reject invalid token addresses", async () => {
     const user = userEvent.setup()
     render(<CreateTokenLockForm />)
