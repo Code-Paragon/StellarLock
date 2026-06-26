@@ -6,7 +6,12 @@ import { App } from "@/App"
 import { WalletProvider } from "@/hooks/useWallet"
 import { ContractEventProvider } from "@/hooks/useContractEventContext"
 import { ErrorBoundary } from "@/components/ErrorBoundary"
+import { initErrorTracking } from "@/lib/sentry"
+import { initWebVitals } from "@/lib/web-vitals"
 import "@/index.css"
+
+initErrorTracking()
+initWebVitals()
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
