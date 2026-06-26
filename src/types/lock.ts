@@ -58,6 +58,26 @@ export interface Lock {
   vesting?: VestingSchedule
 }
 
+/** One share within a split lock. */
+export interface SplitAllocation {
+  beneficiary: string
+  /** Basis points (0–10 000). All allocations in a split lock sum to 10 000. */
+  shareBps: number
+  lockId: string
+}
+
+/** A split lock groups multiple individual locks created in one transaction. */
+export interface SplitLock {
+  groupId: string
+  token: TokenMeta
+  totalAmount: number
+  creator: string
+  unlockAt: number
+  createdAt: number
+  allocations: SplitAllocation[]
+  vesting?: VestingSchedule
+}
+
 /** Aggregate stats for a single token's explorer page. */
 export interface TokenLockSummary {
   token: TokenMeta

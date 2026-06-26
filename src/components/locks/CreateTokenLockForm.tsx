@@ -1,6 +1,6 @@
 import { useMemo, useState, type FormEvent } from "react"
 import { useNavigate } from "react-router-dom"
-import { Lock, Info, Loader2, Calendar } from "lucide-react"
+import { Lock, Info, Loader2, Calendar, Users } from "lucide-react"
 import { Trans, useTranslation } from "react-i18next"
 import { Address, nativeToScVal, xdr } from "@stellar/stellar-sdk"
 import { Input, Label } from "@/components/ui/Input"
@@ -8,12 +8,13 @@ import { Button } from "@/components/ui/Button"
 import { useWallet } from "@/hooks/useWallet"
 import { useTokenBalance } from "@/hooks/useLocks"
 import { createTokenLock } from "@/lib/token-locker"
+import { createSplitLock, type SplitBeneficiary } from "@/lib/split-lock"
 import { trackEvent } from "@/lib/analytics"
-import { formatDate, formatError, isValidStellarAddress } from "@/lib/utils"
-import { formatDate } from "@/lib/utils"
+import { cn, formatDate, formatError, isValidStellarAddress } from "@/lib/utils"
 import { CONTRACTS } from "@/lib/stellar"
 import { ConfirmLockModal } from "@/components/locks/ConfirmLockModal"
 import { CostEstimate } from "@/components/locks/CostEstimate"
+import { MultiBeneficiaryFields } from "@/components/locks/MultiBeneficiaryFields"
 
 const DAY = 86_400_000
 
@@ -40,6 +41,11 @@ export function CreateTokenLockForm() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showConfirm, setShowConfirm] = useState(false)
+  const [multiMode, setMultiMode] = useState(false)
+  const [splitBeneficiaries, setSplitBeneficiaries] = useState<SplitBeneficiary[]>([
+    { address: "", shareBps: 5000 },
+    { address: "", shareBps: 5000 },
+  ])
 
   const vestingTemplates: Record<VestingTemplate, VestingTemplateConfig> = {
     none: { label: t("tokenForm.vestingTemplateCustom") },
@@ -63,7 +69,16 @@ export function CreateTokenLockForm() {
   const minDate = useMemo(() => new Date(Date.now() + DAY).toISOString().slice(0, 10), [])
   const unlockTs = unlockDate ? new Date(unlockDate).getTime() : 0
   const vestingStartTs = vestingStartDate ? new Date(vestingStartDate).getTime() : 0
-  const valid = isValidStellarAddress(tokenAddress.trim()) && Number(amount) > 0 && unlockTs > Date.now()
+  const splitSharesOk =
+    splitBeneficiaries.length >= 2 &&
+    splitBeneficiaries.every((b) => isValidStellarAddress(b.address)) &&
+    splitBeneficiaries.reduce((s, b) => s + b.shareBps, 0) === 10_000
+
+  const valid =
+    isValidStellarAddress(tokenAddress.trim()) &&
+    Number(amount) > 0 &&
+    unlockTs > Date.now() &&
+    (!multiMode || splitSharesOk)
 
   // Build the contract args for cost estimation when form is sufficiently filled in
   const costArgs = useMemo((): xdr.ScVal[] | null => {
@@ -138,19 +153,35 @@ export function CreateTokenLockForm() {
   async function confirmLock() {
     setSubmitting(true)
     try {
-      const { id } = await createTokenLock(
-        {
-          tokenAddress: tokenAddress.trim(),
-          amount: Number(amount),
-          beneficiary: beneficiary.trim() || address!,
-          unlockAt: Math.floor(unlockTs / 1000),
-          vesting: vesting ? { start: Math.floor(Date.now() / 1000), end: Math.floor(unlockTs / 1000) } : undefined,
-        },
-        address!,
-        signTransaction,
-      )
-      trackEvent("lock_create_token", { vesting })
-      navigate(`/app/lock/${id}`)
+      if (multiMode) {
+        await createSplitLock(
+          {
+            tokenAddress: tokenAddress.trim(),
+            totalAmount: Number(amount),
+            beneficiaries: splitBeneficiaries,
+            unlockAt: Math.floor(unlockTs / 1000),
+            vesting: vesting ? { start: Math.floor(Date.now() / 1000), end: Math.floor(unlockTs / 1000) } : undefined,
+          },
+          address!,
+          signTransaction,
+        )
+        trackEvent("lock_create_split", { count: splitBeneficiaries.length, vesting })
+        navigate("/app/locks")
+      } else {
+        const { id } = await createTokenLock(
+          {
+            tokenAddress: tokenAddress.trim(),
+            amount: Number(amount),
+            beneficiary: beneficiary.trim() || address!,
+            unlockAt: Math.floor(unlockTs / 1000),
+            vesting: vesting ? { start: Math.floor(Date.now() / 1000), end: Math.floor(unlockTs / 1000) } : undefined,
+          },
+          address!,
+          signTransaction,
+        )
+        trackEvent("lock_create_token", { vesting })
+        navigate(`/app/lock/${id}`)
+      }
     } catch (err: unknown) {
       console.error("[createLock error]", err)
       setShowConfirm(false)
@@ -214,16 +245,40 @@ export function CreateTokenLockForm() {
         </div>
       </div>
 
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="beneficiary">{t("tokenForm.beneficiary")}</Label>
-        <Input
-          id="beneficiary"
-          placeholder={address ?? "G…"}
-          value={beneficiary}
-          onChange={(e) => setBeneficiary(e.target.value)}
+      {/* Multiple beneficiaries toggle */}
+      <label className={cn(
+        "flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors",
+        multiMode ? "border-primary/40 bg-primary/5" : "border-border bg-background/40",
+      )}>
+        <input
+          type="checkbox"
+          checked={multiMode}
+          onChange={(e) => setMultiMode(e.target.checked)}
+          className="mt-0.5 h-4 w-4 accent-[oklch(0.78_0.16_175)]"
         />
-        <p className="text-xs text-muted-foreground">{t("tokenForm.beneficiaryHint")}</p>
-      </div>
+        <span className="text-sm">
+          <span className="flex items-center gap-1.5 font-medium">
+            <Users className="h-3.5 w-3.5" />
+            {t("splitLock.toggle")}
+          </span>
+          <span className="block text-muted-foreground">{t("splitLock.toggleDesc")}</span>
+        </span>
+      </label>
+
+      {multiMode ? (
+        <MultiBeneficiaryFields beneficiaries={splitBeneficiaries} onChange={setSplitBeneficiaries} />
+      ) : (
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="beneficiary">{t("tokenForm.beneficiary")}</Label>
+          <Input
+            id="beneficiary"
+            placeholder={address ?? "G…"}
+            value={beneficiary}
+            onChange={(e) => setBeneficiary(e.target.value)}
+          />
+          <p className="text-xs text-muted-foreground">{t("tokenForm.beneficiaryHint")}</p>
+        </div>
+      )}
 
       <div className="flex flex-col gap-2">
         <Label htmlFor="unlock">{t("tokenForm.unlockDate")}</Label>
@@ -355,7 +410,7 @@ export function CreateTokenLockForm() {
 
       <Button type="submit" size="lg" loading={submitting} disabled={!valid}>
         <Lock className="h-4 w-4" />
-        {t("tokenForm.submit")}
+        {multiMode ? t("splitLock.submit") : t("tokenForm.submit")}
       </Button>
     </form>
 

@@ -18,7 +18,8 @@
     "connectWallet": "Conectar billetera",
     "disconnectWallet": "Desconectar billetera",
     "openMenu": "Abrir menú",
-    "closeMenu": "Cerrar menú"
+    "closeMenu": "Cerrar menú",
+    "history": "Historial"
   },
   "landing": {
     "badge": "Construido en Stellar · Contratos inteligentes Soroban",
@@ -208,16 +209,56 @@
     "myLocks": "My Locks",
     "lockId": "Lock #{{id}}",
     "discover": "Discover",
-    "createLock": "Create Lock"
+    "createLock": "Crear bloqueo",
+    "history": "Historial de transacciones"
+  },
   "costEstimate": {
-    "title": "Estimated Costs",
-    "networkFee": "Transaction fee",
-    "storageFee": "Storage deposit",
+    "title": "Costos estimados",
+    "networkFee": "Comisión de transacción",
+    "storageFee": "Depósito de almacenamiento",
     "total": "Total",
-    "tooltip": "Soroban requires a refundable storage deposit to rent on-chain state. This deposit is separate from the transaction fee.",
-    "highCostWarning": "Unusually high storage cost",
-    "estimating": "Estimating costs…",
-    "error": "Unable to estimate cost",
+    "tooltip": "Soroban requiere un depósito de almacenamiento reembolsable para alquilar estado on-chain. Este depósito es independiente de la comisión de transacción.",
+    "highCostWarning": "Costo de almacenamiento inusualmente alto",
+    "estimating": "Estimando costos…",
+    "error": "No se pudo estimar el costo",
     "unit": "XLM"
+  },
+  "history": {
+    "title": "Historial de transacciones",
+    "subtitle": "Todas las transacciones de StellarLock enviadas desde este navegador.",
+    "empty": "Aún no hay transacciones",
+    "emptyDesc": "Las transacciones aparecerán aquí después de crear, retirar, extender o transferir un bloqueo.",
+    "filterAll": "Todas",
+    "filterType": "Tipo",
+    "filterStatus": "Estado",
+    "colHash": "Transacción",
+    "colType": "Tipo",
+    "colStatus": "Estado",
+    "colDate": "Fecha",
+    "colLock": "Bloqueo",
+    "viewOnExplorer": "Ver en Stellar Expert",
+    "copyHash": "Copiar hash",
+    "typeCreateLock": "Crear bloqueo",
+    "typeWithdraw": "Retirar",
+    "typeExtend": "Extender",
+    "typeTransfer": "Transferir beneficiario",
+    "typeSplitLock": "Bloqueo dividido",
+    "statusPending": "Pendiente",
+    "statusSuccess": "Éxito",
+    "statusFailed": "Fallida",
+    "cleanupNote": "Las transacciones de más de 90 días se eliminan automáticamente."
+  },
+  "splitLock": {
+    "toggle": "Múltiples beneficiarios",
+    "toggleDesc": "Divide este bloqueo entre múltiples direcciones con participaciones proporcionales.",
+    "addBeneficiary": "Agregar beneficiario",
+    "removeBeneficiary": "Eliminar",
+    "addressLabel": "Dirección",
+    "shareLabel": "Participación (%)",
+    "totalShare": "Total",
+    "totalShareError": "Las participaciones deben sumar 100%",
+    "minBeneficiaries": "Agrega al menos 2 beneficiarios o usa el modo de un solo beneficiario.",
+    "maxBeneficiaries": "Máximo 10 beneficiarios permitidos.",
+    "submit": "Crear bloqueo dividido"
   }
 }
