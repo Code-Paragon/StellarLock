@@ -7,6 +7,7 @@ import { NETWORK } from "@/lib/stellar"
 import { useTheme } from "@/hooks/useTheme"
 import { Button } from "@/components/ui/Button"
 import { NotificationCenter } from "@/components/ui/NotificationCenter"
+import { RpcStatusIndicator } from "@/components/layout/RpcStatus"
 import { shortAddress, cn } from "@/lib/utils"
 
 export function Navbar() {
@@ -59,6 +60,7 @@ export function Navbar() {
         </nav>
 
         <div className="flex items-center gap-2">
+          <RpcStatusIndicator />
           <span className="hidden rounded-md border border-border bg-card px-3 py-2 text-sm font-medium text-muted-foreground sm:inline-flex">
             {NETWORK.displayName}
           </span>
