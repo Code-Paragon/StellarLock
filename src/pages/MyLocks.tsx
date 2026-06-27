@@ -1,24 +1,29 @@
-import { useMemo, useState } from "react"
+import { useMemo, useState, useCallback } from "react"
 import { Link, useNavigate } from "react-router-dom"
-import { Plus, Wallet, Layers, Search } from "lucide-react"
+import { Plus, Wallet, Layers, Search, CheckSquare } from "lucide-react"
 import { Helmet } from "react-helmet-async"
 import { useTranslation } from "react-i18next"
 import { useWallet } from "@/hooks/useWallet"
 import { useMyLocks } from "@/hooks/useLocks"
+import { extendLock, transferBeneficiary } from "@/lib/token-locker"
+import { extendLpLock, transferLpBeneficiary } from "@/lib/lp-locker"
 import { Tabs } from "@/components/ui/Tabs"
 import { Button } from "@/components/ui/Button"
 import { StatCard } from "@/components/ui/StatCard"
 import { LockCard } from "@/components/locks/LockCard"
+import { BulkActionsToolbar } from "@/components/locks/BulkActionsToolbar"
+import { BulkConfirmModal } from "@/components/locks/BulkConfirmModal"
 import { ConnectGate } from "@/components/layout/ConnectGate"
 import { formatUsd } from "@/lib/utils"
 import type { Lock, LockStatus } from "@/types/lock"
 
 type Tab = "created" | "received"
 type SortKey = "unlockAt" | "amount" | "createdAt"
+type BulkAction = "extend" | "transfer" | null
 
 export function MyLocks() {
   const { t } = useTranslation()
-  const { address } = useWallet()
+  const { address, signTransaction } = useWallet()
   const navigate = useNavigate()
   const { data, loading, error, reload } = useMyLocks(address)
   const [tab, setTab] = useState<Tab>("created")
@@ -26,6 +31,11 @@ export function MyLocks() {
   const [statusFilter, setStatusFilter] = useState<LockStatus | "all">("all")
   const [kindFilter, setKindFilter] = useState<"all" | "token" | "lp">("all")
   const [sortKey, setSortKey] = useState<SortKey>("unlockAt")
+
+  // Bulk selection state
+  const [selectMode, setSelectMode] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [bulkAction, setBulkAction] = useState<BulkAction>(null)
 
   const created = data?.created ?? []
   const received = data?.received ?? []
@@ -55,6 +65,74 @@ export function MyLocks() {
       })
   }, [rawList, search, statusFilter, kindFilter, sortKey])
 
+  const selectedLocks = useMemo(
+    () => filteredList.filter((l) => selectedIds.has(l.id)),
+    [filteredList, selectedIds],
+  )
+
+  const allSelected = filteredList.length > 0 && filteredList.every((l) => selectedIds.has(l.id))
+
+  function toggleSelect(id: string, checked: boolean) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      checked ? next.add(id) : next.delete(id)
+      return next
+    })
+  }
+
+  function handleSelectAll() {
+    if (allSelected) {
+      setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(filteredList.map((l) => l.id)))
+    }
+  }
+
+  function exitSelectMode() {
+    setSelectMode(false)
+    setSelectedIds(new Set())
+  }
+
+  const handleBulkExtend = useCallback(
+    async (newDate: string) => {
+      const newUnlockSecs = Math.floor(new Date(newDate).getTime() / 1000)
+      for (const lock of selectedLocks) {
+        if (Math.floor(lock.unlockAt / 1000) >= newUnlockSecs) continue
+        try {
+          if (lock.kind === "lp") {
+            await extendLpLock(lock.id, newUnlockSecs, address!, signTransaction)
+          } else {
+            await extendLock(lock.id, newUnlockSecs, address!, signTransaction)
+          }
+        } catch {
+          // per-lock errors shown in modal
+        }
+      }
+      reload()
+      exitSelectMode()
+    },
+    [selectedLocks, address, signTransaction, reload],
+  )
+
+  const handleBulkTransfer = useCallback(
+    async (newBeneficiary: string) => {
+      for (const lock of selectedLocks) {
+        try {
+          if (lock.kind === "lp") {
+            await transferLpBeneficiary(lock.id, newBeneficiary.trim(), address!, signTransaction)
+          } else {
+            await transferBeneficiary(lock.id, newBeneficiary.trim(), address!, signTransaction)
+          }
+        } catch {
+          // per-lock errors shown in modal
+        }
+      }
+      reload()
+      exitSelectMode()
+    },
+    [selectedLocks, address, signTransaction, reload],
+  )
+
   return (
     <ConnectGate title={t("connectGate.title")}>
       <Helmet>
@@ -67,10 +145,23 @@ export function MyLocks() {
             <h1 className="text-balance text-3xl font-bold tracking-tight md:text-4xl">{t("myLocks.title")}</h1>
             <p className="mt-2 text-muted-foreground">{t("myLocks.subtitle")}</p>
           </div>
-          <Button onClick={() => navigate("/app/create")}>
-            <Plus className="h-4 w-4" />
-            {t("myLocks.newLock")}
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setSelectMode((v) => !v)
+                if (selectMode) exitSelectMode()
+              }}
+              aria-pressed={selectMode}
+            >
+              <CheckSquare className="h-4 w-4" />
+              {selectMode ? "Cancel" : "Select"}
+            </Button>
+            <Button onClick={() => navigate("/app/create")}>
+              <Plus className="h-4 w-4" />
+              {t("myLocks.newLock")}
+            </Button>
+          </div>
         </header>
 
         <div className="mt-8 grid gap-4 sm:grid-cols-3">
@@ -90,7 +181,10 @@ export function MyLocks() {
         <div className="mt-8">
           <Tabs
             value={tab}
-            onChange={(v) => setTab(v as Tab)}
+            onChange={(v) => {
+              setTab(v as Tab)
+              exitSelectMode()
+            }}
             items={[
               { value: "created", label: t("myLocks.createdByMe"), count: created.length },
               { value: "received", label: t("myLocks.beneficiary"), count: received.length },
@@ -146,8 +240,41 @@ export function MyLocks() {
           </select>
         </div>
 
-        <LockGrid locks={filteredList} loading={loading} error={error} onRetry={reload} tab={tab} hasFilters={search !== "" || statusFilter !== "all" || kindFilter !== "all"} />
+        {/* Bulk actions toolbar */}
+        {selectMode && (
+          <BulkActionsToolbar
+            selectedCount={selectedIds.size}
+            onClear={exitSelectMode}
+            onSelectAll={handleSelectAll}
+            allSelected={allSelected}
+            onBulkExtend={() => setBulkAction("extend")}
+            onBulkTransfer={() => setBulkAction("transfer")}
+            canExtend={tab === "created"}
+            canTransfer={tab === "received"}
+          />
+        )}
+
+        <LockGrid
+          locks={filteredList}
+          loading={loading}
+          error={error}
+          onRetry={reload}
+          tab={tab}
+          hasFilters={search !== "" || statusFilter !== "all" || kindFilter !== "all"}
+          selectable={selectMode}
+          selectedIds={selectedIds}
+          onSelect={toggleSelect}
+        />
       </div>
+
+      {bulkAction && (
+        <BulkConfirmModal
+          action={bulkAction}
+          locks={selectedLocks}
+          onConfirm={bulkAction === "extend" ? handleBulkExtend : handleBulkTransfer}
+          onClose={() => setBulkAction(null)}
+        />
+      )}
     </ConnectGate>
   )
 }
@@ -159,6 +286,9 @@ function LockGrid({
   onRetry,
   tab,
   hasFilters,
+  selectable,
+  selectedIds,
+  onSelect,
 }: {
   locks: Lock[]
   loading: boolean
@@ -166,6 +296,9 @@ function LockGrid({
   onRetry: () => void
   tab: Tab
   hasFilters: boolean
+  selectable: boolean
+  selectedIds: Set<string>
+  onSelect: (id: string, checked: boolean) => void
 }) {
   const { t } = useTranslation()
 
@@ -221,7 +354,13 @@ function LockGrid({
   return (
     <div className="mt-6 grid gap-4 md:grid-cols-2">
       {locks.map((lock) => (
-        <LockCard key={lock.id} lock={lock} />
+        <LockCard
+          key={lock.id}
+          lock={lock}
+          selectable={selectable}
+          selected={selectedIds.has(lock.id)}
+          onSelect={onSelect}
+        />
       ))}
     </div>
   )
