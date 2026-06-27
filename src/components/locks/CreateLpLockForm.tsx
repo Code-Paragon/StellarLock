@@ -6,11 +6,12 @@ import { Address, nativeToScVal, xdr } from "@stellar/stellar-sdk"
 import type { Dex } from "@/types/lock"
 import { Input, Label } from "@/components/ui/Input"
 import { Button } from "@/components/ui/Button"
+import { TxProgressSteps } from "@/components/ui/TxProgressSteps"
 import { cn, formatDate, isValidStellarAddress } from "@/lib/utils"
 import { useWallet } from "@/hooks/useWallet"
 import { createLpLock } from "@/lib/lp-locker"
 import { trackEvent } from "@/lib/analytics"
-import { CONTRACTS } from "@/lib/stellar"
+import { CONTRACTS, type TxPhase } from "@/lib/stellar"
 import { ConfirmLockModal } from "@/components/locks/ConfirmLockModal"
 import { CostEstimate } from "@/components/locks/CostEstimate"
 
@@ -28,6 +29,7 @@ export function CreateLpLockForm() {
   const [amount, setAmount] = useState("")
   const [unlockDate, setUnlockDate] = useState("")
   const [submitting, setSubmitting] = useState(false)
+  const [txPhase, setTxPhase] = useState<TxPhase | "idle">("idle")
   const [showConfirm, setShowConfirm] = useState(false)
 
   const dexes: { value: Dex; label: string; desc: string }[] = [
@@ -95,6 +97,7 @@ export function CreateLpLockForm() {
 
   async function confirmLock() {
     setSubmitting(true)
+    setTxPhase("simulating")
     try {
       const { id } = await createLpLock(
         {
@@ -108,11 +111,13 @@ export function CreateLpLockForm() {
         },
         address!,
         signTransaction,
+        setTxPhase,
       )
       trackEvent("lock_create_lp", { dex })
       navigate(`/app/lock/${id}`)
     } finally {
       setSubmitting(false)
+      setTxPhase("idle")
     }
   }
 
@@ -255,20 +260,25 @@ export function CreateLpLockForm() {
     </form>
 
     {showConfirm && (
-      <ConfirmLockModal
-        data={{
-          tokenAddress: poolShareAddress.trim(),
-          amount: amount,
-          beneficiary: address!,
-          unlockDate: unlockDate,
-          isLp: true,
-          dex: dex,
-          poolShareAddress: poolShareAddress.trim(),
-        }}
-        onConfirm={confirmLock}
-        onCancel={() => setShowConfirm(false)}
-        loading={submitting}
-      />
+      <>
+        <ConfirmLockModal
+          data={{
+            tokenAddress: poolShareAddress.trim(),
+            amount: amount,
+            beneficiary: address!,
+            unlockDate: unlockDate,
+            isLp: true,
+            dex: dex,
+            poolShareAddress: poolShareAddress.trim(),
+          }}
+          onConfirm={confirmLock}
+          onCancel={() => setShowConfirm(false)}
+          loading={submitting}
+        />
+        <div className="fixed bottom-6 left-1/2 z-50 w-full max-w-sm -translate-x-1/2 px-4">
+          <TxProgressSteps phase={txPhase} />
+        </div>
+      </>
     )}
   </>
   )

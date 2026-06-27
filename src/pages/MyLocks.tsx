@@ -11,6 +11,7 @@ import { Tabs } from "@/components/ui/Tabs"
 import { Button } from "@/components/ui/Button"
 import { StatCard } from "@/components/ui/StatCard"
 import { LockCard } from "@/components/locks/LockCard"
+import { Pagination } from "@/components/ui/Pagination"
 import { BulkActionsToolbar } from "@/components/locks/BulkActionsToolbar"
 import { BulkConfirmModal } from "@/components/locks/BulkConfirmModal"
 import { ConnectGate } from "@/components/layout/ConnectGate"
@@ -21,11 +22,14 @@ type Tab = "created" | "received"
 type SortKey = "unlockAt" | "amount" | "createdAt"
 type BulkAction = "extend" | "transfer" | null
 
+const PAGE_SIZE = 20
+
 export function MyLocks() {
   const { t } = useTranslation()
   const { address, signTransaction } = useWallet()
   const navigate = useNavigate()
-  const { data, loading, error, reload } = useMyLocks(address)
+  const [page, setPage] = useState(1)
+  const { data, loading, error, reload } = useMyLocks(address, (page - 1) * PAGE_SIZE, PAGE_SIZE)
   const [tab, setTab] = useState<Tab>("created")
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState<LockStatus | "all">("all")
@@ -39,15 +43,24 @@ export function MyLocks() {
 
   const created = data?.created ?? []
   const received = data?.received ?? []
+  const totalCreated = data?.totalCreated ?? 0
+  const totalReceived = data?.totalReceived ?? 0
 
   const stats = useMemo(() => {
     const now = Date.now()
     const totalValue = created.reduce((sum, l) => sum + l.usdValue, 0)
     const unlockable = created.filter((l) => l.unlockAt <= now && l.status !== "withdrawn").length
-    return { count: created.length, totalValue, unlockable }
-  }, [created])
+    return { count: totalCreated, totalValue, unlockable }
+  }, [created, totalCreated])
 
   const rawList = tab === "created" ? created : received
+  const totalForTab = tab === "created" ? totalCreated : totalReceived
+
+  // Reset to page 1 when switching tabs or filters
+  function handleTabChange(v: string) {
+    setTab(v as Tab)
+    setPage(1)
+  }
 
   const filteredList = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -181,13 +194,14 @@ export function MyLocks() {
         <div className="mt-8">
           <Tabs
             value={tab}
+            onChange={handleTabChange}
             onChange={(v) => {
               setTab(v as Tab)
               exitSelectMode()
             }}
             items={[
-              { value: "created", label: t("myLocks.createdByMe"), count: created.length },
-              { value: "received", label: t("myLocks.beneficiary"), count: received.length },
+              { value: "created", label: t("myLocks.createdByMe"), count: totalCreated },
+              { value: "received", label: t("myLocks.beneficiary"), count: totalReceived },
             ]}
           />
         </div>
@@ -199,7 +213,7 @@ export function MyLocks() {
             <input
               type="search"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => { setSearch(e.target.value); setPage(1) }}
               placeholder="Search by token symbol or lock ID…"
               className="w-full rounded-lg border border-border bg-background py-2 pl-9 pr-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
             />
@@ -207,7 +221,7 @@ export function MyLocks() {
 
           <select
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as LockStatus | "all")}
+            onChange={(e) => { setStatusFilter(e.target.value as LockStatus | "all"); setPage(1) }}
             className="rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 cursor-pointer"
             aria-label="Filter by status"
           >
@@ -219,7 +233,7 @@ export function MyLocks() {
 
           <select
             value={kindFilter}
-            onChange={(e) => setKindFilter(e.target.value as "all" | "token" | "lp")}
+            onChange={(e) => { setKindFilter(e.target.value as "all" | "token" | "lp"); setPage(1) }}
             className="rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 cursor-pointer"
             aria-label="Filter by type"
           >
@@ -240,6 +254,13 @@ export function MyLocks() {
           </select>
         </div>
 
+        <LockGrid locks={filteredList} loading={loading} error={error} onRetry={reload} tab={tab} hasFilters={search !== "" || statusFilter !== "all" || kindFilter !== "all"} />
+
+        <Pagination
+          page={page}
+          pageSize={PAGE_SIZE}
+          total={totalForTab}
+          onChange={setPage}
         {/* Bulk actions toolbar */}
         {selectMode && (
           <BulkActionsToolbar

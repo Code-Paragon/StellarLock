@@ -8,6 +8,7 @@ import { useWallet } from "@/hooks/useWallet"
 import { withdrawLock, extendLock, transferBeneficiary } from "@/lib/token-locker"
 import { withdrawLpLock, extendLpLock, transferLpBeneficiary } from "@/lib/lp-locker"
 import { trackEvent } from "@/lib/analytics"
+import { type TxPhase } from "@/lib/stellar"
 import { downloadLockReport } from "@/lib/pdf-report"
 import { Card } from "@/components/ui/Card"
 import { Button } from "@/components/ui/Button"
@@ -19,6 +20,7 @@ import { DexBadge } from "@/components/ui/DexBadge"
 import { CopyButton } from "@/components/ui/CopyButton"
 import { CountdownTimer } from "@/components/ui/CountdownTimer"
 import { LockProgressBar } from "@/components/ui/LockProgressBar"
+import { TxProgressSteps } from "@/components/ui/TxProgressSteps"
 import { VerifiedBadge } from "@/components/ui/VerifiedBadge"
 import { NotificationSettings } from "@/components/locks/NotificationSettings"
 import { useVerifiedToken } from "@/hooks/useVerifiedToken"
@@ -97,6 +99,7 @@ function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }
   const canTransfer = isBeneficiary && lock.status !== "withdrawn"
 
   const [busy, setBusy] = useState<"withdraw" | "extend" | "transfer" | null>(null)
+  const [txPhase, setTxPhase] = useState<TxPhase | "idle">("idle")
   const [extendOpen, setExtendOpen] = useState(false)
   const [transferOpen, setTransferOpen] = useState(false)
   const [newDate, setNewDate] = useState("")
@@ -120,14 +123,16 @@ function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }
 
   async function handleWithdraw() {
     setBusy("withdraw")
+    setTxPhase("simulating")
     try {
       await (isLp
-        ? withdrawLpLock(lock.id, address!, signTransaction)
-        : withdrawLock(lock.id, address!, signTransaction))
+        ? withdrawLpLock(lock.id, address!, signTransaction, setTxPhase)
+        : withdrawLock(lock.id, address!, signTransaction, setTxPhase))
       trackEvent("lock_withdraw", { kind: lock.kind })
       onChange()
     } finally {
       setBusy(null)
+      setTxPhase("idle")
     }
   }
 
@@ -136,31 +141,35 @@ function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }
     const ts = Math.floor(new Date(newDate).getTime() / 1000)
     if (ts <= Math.floor(lock.unlockAt / 1000)) return
     setBusy("extend")
+    setTxPhase("simulating")
     try {
       await (isLp
-        ? extendLpLock(lock.id, ts, address!, signTransaction)
-        : extendLock(lock.id, ts, address!, signTransaction))
+        ? extendLpLock(lock.id, ts, address!, signTransaction, setTxPhase)
+        : extendLock(lock.id, ts, address!, signTransaction, setTxPhase))
       trackEvent("lock_extend", { kind: lock.kind })
       setExtendOpen(false)
       onChange()
     } finally {
       setBusy(null)
+      setTxPhase("idle")
     }
   }
 
   async function handleTransfer() {
     if (!newBeneficiary.trim()) return
     setBusy("transfer")
+    setTxPhase("simulating")
     try {
       await (isLp
-        ? transferLpBeneficiary(lock.id, newBeneficiary.trim(), address!, signTransaction)
-        : transferBeneficiary(lock.id, newBeneficiary.trim(), address!, signTransaction))
+        ? transferLpBeneficiary(lock.id, newBeneficiary.trim(), address!, signTransaction, setTxPhase)
+        : transferBeneficiary(lock.id, newBeneficiary.trim(), address!, signTransaction, setTxPhase))
       trackEvent("lock_transfer_beneficiary", { kind: lock.kind })
       setTransferOpen(false)
       setNewBeneficiary("")
       onChange()
     } finally {
       setBusy(null)
+      setTxPhase("idle")
     }
   }
 
@@ -309,6 +318,12 @@ function LockDetailView({ lock, onChange }: { lock: Lock; onChange: () => void }
           </div>
         )}
         {(isBeneficiary || isCreator) && <NotificationSettings lockId={lock.id} unlockAt={lock.unlockAt} />}
+
+        {txPhase !== "idle" && (
+          <div className="border-t border-border px-6 pb-4 pt-3">
+            <TxProgressSteps phase={txPhase} />
+          </div>
+        )}
 
         {(canWithdraw || canExtend || canTransfer) && (
           <div className="flex flex-col gap-3 border-t border-border p-6 sm:flex-row">

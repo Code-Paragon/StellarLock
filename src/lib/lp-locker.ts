@@ -1,6 +1,7 @@
 import { Address, nativeToScVal, xdr } from "@stellar/stellar-sdk"
 import type { Dex, Lock } from "@/types/lock"
-import { CONTRACTS, simulateCall, submitCall, STELLAR_DECIMALS } from "@/lib/stellar"
+import { CONTRACTS, simulateCall, submitCall, type TxPhase } from "@/lib/stellar"
+import { getOnChainTokenMeta } from "@/lib/token-metadata"
 
 export interface CreateLpLockArgs {
   poolShareAddress: string
@@ -34,7 +35,13 @@ function dexArg(dex: Dex): xdr.ScVal {
 
 // ── Converters ────────────────────────────────────────────────────────────────
 
-function toLpLock(raw: Record<string, unknown>): Lock {
+interface LpMeta {
+  tokenASymbol: string
+  tokenBSymbol: string
+  poolDecimals: number
+}
+
+function toLpLock(raw: Record<string, unknown>, meta?: LpMeta): Lock {
   const poolShare = raw.pool_share as string
   const dexRaw = raw.dex as { tag?: string } | string
   const dex: Dex = (
@@ -43,26 +50,53 @@ function toLpLock(raw: Record<string, unknown>): Lock {
   const tokenA = raw.token_a as string
   const tokenB = raw.token_b as string
 
+  const tokenASymbol = meta?.tokenASymbol ?? tokenA.slice(0, 4)
+  const tokenBSymbol = meta?.tokenBSymbol ?? tokenB.slice(0, 4)
+  const poolDecimals = meta?.poolDecimals ?? 7
+  const multiplier = 10 ** poolDecimals
+
   return {
     id: String(raw.id),
     kind: "lp",
     status: raw.withdrawn ? "withdrawn" : Number(raw.unlock_at) * 1000 <= Date.now() ? "unlockable" : "locked",
     token: {
       address: poolShare,
-      symbol: `${tokenA.slice(0, 4)}-${tokenB.slice(0, 4)} LP`,
-      name: `${tokenA.slice(0, 6)}/${tokenB.slice(0, 6)} Pool Share`,
-      decimals: 7,
+      symbol: `${tokenASymbol}-${tokenBSymbol} LP`,
+      name: `${tokenASymbol}/${tokenBSymbol} Pool Share`,
+      decimals: poolDecimals,
     },
     dex,
     poolPair: [tokenA, tokenB],
     creator: raw.creator as string,
     beneficiary: raw.beneficiary as string,
-    amount: Number(raw.amount) / STELLAR_DECIMALS,
+    amount: Number(raw.amount) / multiplier,
     usdValue: 0,
     createdAt: Number(raw.created_at) * 1000,
     unlockAt: Number(raw.unlock_at) * 1000,
     extendedCount: Number(raw.extended_count),
   }
+}
+
+/** Fetch on-chain metadata for LP locks: tokenA/tokenB symbols + pool share decimals. */
+async function enrichLpLocks(raws: Record<string, unknown>[]): Promise<Lock[]> {
+  const tokenAAddrs = [...new Set(raws.map((r) => r.token_a as string))]
+  const tokenBAddrs = [...new Set(raws.map((r) => r.token_b as string))]
+  const poolAddrs = [...new Set(raws.map((r) => r.pool_share as string))]
+
+  const allAddrs = [...new Set([...tokenAAddrs, ...tokenBAddrs, ...poolAddrs])]
+  const entries = await Promise.all(allAddrs.map(async (addr) => [addr, await getOnChainTokenMeta(addr)] as const))
+  const metaMap = new Map(entries)
+
+  return raws.map((r) => {
+    const tokenAMeta = metaMap.get(r.token_a as string)
+    const tokenBMeta = metaMap.get(r.token_b as string)
+    const poolMeta = metaMap.get(r.pool_share as string)
+    return toLpLock(r, {
+      tokenASymbol: tokenAMeta?.symbol ?? (r.token_a as string).slice(0, 4),
+      tokenBSymbol: tokenBMeta?.symbol ?? (r.token_b as string).slice(0, 4),
+      poolDecimals: poolMeta?.decimals ?? 7,
+    })
+  })
 }
 
 // ── Read methods ──────────────────────────────────────────────────────────────
@@ -78,7 +112,7 @@ export async function getLpLocksByCreator(address: string, offset = 0, limit = D
     addressArg(address),
     ...paginationArgs(offset, limit),
   ])
-  return (raw ?? []).map(toLpLock)
+  return enrichLpLocks(raw ?? [])
 }
 
 export async function getLpLocksByBeneficiary(address: string, offset = 0, limit = DEFAULT_PAGE_SIZE): Promise<Lock[]> {
@@ -86,7 +120,7 @@ export async function getLpLocksByBeneficiary(address: string, offset = 0, limit
     addressArg(address),
     ...paginationArgs(offset, limit),
   ])
-  return (raw ?? []).map(toLpLock)
+  return enrichLpLocks(raw ?? [])
 }
 
 export async function getLpLockCountByCreator(address: string): Promise<number> {
@@ -105,6 +139,7 @@ export async function createLpLock(
   args: CreateLpLockArgs,
   sourceAddress: string,
   signTransaction: (xdr: string) => Promise<{ signedTxXdr: string }>,
+  onProgress?: (phase: TxPhase) => void,
 ): Promise<{ id: string }> {
   const scArgs: xdr.ScVal[] = [
     addressArg(sourceAddress),
@@ -112,12 +147,12 @@ export async function createLpLock(
     dexArg(args.dex),
     addressArg(args.tokenA),
     addressArg(args.tokenB),
-    nativeToScVal(BigInt(Math.round(args.amount * STELLAR_DECIMALS)), { type: "i128" }),
+    nativeToScVal(BigInt(Math.round(args.amount * 1e7)), { type: "i128" }),
     addressArg(args.beneficiary),
     nativeToScVal(BigInt(Math.floor(args.unlockAt)), { type: "u64" }),
   ]
 
-  await submitCall(CONTRACTS.lpLocker, "create_lock", scArgs, sourceAddress, signTransaction)
+  await submitCall(CONTRACTS.lpLocker, "create_lock", scArgs, sourceAddress, signTransaction, onProgress)
   return { id: "pending" }
 }
 
@@ -125,8 +160,9 @@ export async function withdrawLpLock(
   id: string,
   sourceAddress: string,
   signTransaction: (xdr: string) => Promise<{ signedTxXdr: string }>,
+  onProgress?: (phase: TxPhase) => void,
 ): Promise<void> {
-  await submitCall(CONTRACTS.lpLocker, "withdraw", [idArg(id)], sourceAddress, signTransaction)
+  await submitCall(CONTRACTS.lpLocker, "withdraw", [idArg(id)], sourceAddress, signTransaction, onProgress)
 }
 
 export async function extendLpLock(
@@ -134,6 +170,7 @@ export async function extendLpLock(
   newUnlockAt: number,
   sourceAddress: string,
   signTransaction: (xdr: string) => Promise<{ signedTxXdr: string }>,
+  onProgress?: (phase: TxPhase) => void,
 ): Promise<void> {
   await submitCall(
     CONTRACTS.lpLocker,
@@ -141,6 +178,7 @@ export async function extendLpLock(
     [idArg(id), nativeToScVal(BigInt(Math.floor(newUnlockAt)), { type: "u64" })],
     sourceAddress,
     signTransaction,
+    onProgress,
   )
 }
 
@@ -149,6 +187,7 @@ export async function transferLpBeneficiary(
   newBeneficiary: string,
   sourceAddress: string,
   signTransaction: (xdr: string) => Promise<{ signedTxXdr: string }>,
+  onProgress?: (phase: TxPhase) => void,
 ): Promise<void> {
   await submitCall(
     CONTRACTS.lpLocker,
@@ -156,5 +195,6 @@ export async function transferLpBeneficiary(
     [idArg(id), addressArg(newBeneficiary)],
     sourceAddress,
     signTransaction,
+    onProgress,
   )
 }

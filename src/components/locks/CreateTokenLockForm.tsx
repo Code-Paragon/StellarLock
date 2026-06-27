@@ -5,11 +5,13 @@ import { Trans, useTranslation } from "react-i18next"
 import { Address, nativeToScVal, xdr } from "@stellar/stellar-sdk"
 import { Input, Label } from "@/components/ui/Input"
 import { Button } from "@/components/ui/Button"
+import { TxProgressSteps } from "@/components/ui/TxProgressSteps"
 import { useWallet } from "@/hooks/useWallet"
 import { useTokenBalance } from "@/hooks/useLocks"
 import { createTokenLock } from "@/lib/token-locker"
 import { trackEvent } from "@/lib/analytics"
 import { formatDate, formatError, isValidStellarAddress } from "@/lib/utils"
+import { CONTRACTS, type TxPhase } from "@/lib/stellar"
 import { CONTRACTS } from "@/lib/stellar"
 import { ConfirmLockModal } from "@/components/locks/ConfirmLockModal"
 import { CostEstimate } from "@/components/locks/CostEstimate"
@@ -37,6 +39,7 @@ export function CreateTokenLockForm() {
   const [vestingTemplate, setVestingTemplate] = useState<VestingTemplate>("none")
   const [vestingStartDate, setVestingStartDate] = useState("")
   const [submitting, setSubmitting] = useState(false)
+  const [txPhase, setTxPhase] = useState<TxPhase | "idle">("idle")
   const [error, setError] = useState<string | null>(null)
   const [showConfirm, setShowConfirm] = useState(false)
   const [cooldownRemaining, setCooldownRemaining] = useState(0)
@@ -169,6 +172,7 @@ export function CreateTokenLockForm() {
 
   async function confirmLock() {
     setSubmitting(true)
+    setTxPhase("simulating")
     try {
       const { id } = await createTokenLock(
         {
@@ -180,6 +184,7 @@ export function CreateTokenLockForm() {
         },
         address!,
         signTransaction,
+        setTxPhase,
       )
       trackEvent("lock_create_token", { vesting })
       localStorage.setItem(COOLDOWN_KEY, String(Date.now()))
@@ -191,6 +196,7 @@ export function CreateTokenLockForm() {
       setError(formatError(err))
     } finally {
       setSubmitting(false)
+      setTxPhase("idle")
     }
   }
 
@@ -404,18 +410,23 @@ export function CreateTokenLockForm() {
     </form>
 
     {showConfirm && (
-      <ConfirmLockModal
-        data={{
-          tokenAddress: tokenAddress.trim(),
-          amount: amount,
-          beneficiary: beneficiary.trim() || address!,
-          unlockDate: unlockDate,
-          vesting,
-        }}
-        onConfirm={confirmLock}
-        onCancel={() => setShowConfirm(false)}
-        loading={submitting}
-      />
+      <>
+        <ConfirmLockModal
+          data={{
+            tokenAddress: tokenAddress.trim(),
+            amount: amount,
+            beneficiary: beneficiary.trim() || address!,
+            unlockDate: unlockDate,
+            vesting,
+          }}
+          onConfirm={confirmLock}
+          onCancel={() => setShowConfirm(false)}
+          loading={submitting}
+        />
+        <div className="fixed bottom-6 left-1/2 z-50 w-full max-w-sm -translate-x-1/2 px-4">
+          <TxProgressSteps phase={txPhase} />
+        </div>
+      </>
     )}
   </>
   )

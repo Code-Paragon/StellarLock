@@ -46,6 +46,9 @@ const MAX_CONCURRENT = 5
 const MAX_RETRIES = 3
 const CACHE_TTL_MS = 10_000
 
+/** Phase reported via the onProgress callback during submitCall. */
+export type TxPhase = "simulating" | "signing" | "submitting" | "confirming"
+
 // ── RPC client ────────────────────────────────────────────────────────────────
 
 type SimulateArg = Parameters<SorobanRpc.Server["simulateTransaction"]>[0]
@@ -215,6 +218,7 @@ export async function submitCall(
   args: xdr.ScVal[],
   sourceAddress: string,
   signTransaction: (xdr: string) => Promise<{ signedTxXdr: string }>,
+  onProgress?: (phase: TxPhase) => void,
 ): Promise<void> {
   const rpc = getRpc()
   const account = await rpc.getAccount(sourceAddress)
@@ -228,6 +232,7 @@ export async function submitCall(
     .setTimeout(30)
     .build()
 
+  onProgress?.("simulating")
   const simResult = await rpc.simulateTransaction(tx)
   if (import.meta.env.DEV) console.log("[submitCall sim]", method, simResult)
 
@@ -237,8 +242,10 @@ export async function submitCall(
 
   const preparedTx = SorobanRpc.assembleTransaction(tx, simResult).build()
 
+  onProgress?.("signing")
   const { signedTxXdr } = await signTransaction(preparedTx.toXDR())
 
+  onProgress?.("submitting")
   const sendResult = await rpc.sendTransaction(TransactionBuilder.fromXDR(signedTxXdr, NETWORK.passphrase))
   if (import.meta.env.DEV) console.log("[submitCall send]", sendResult)
 
@@ -249,6 +256,7 @@ export async function submitCall(
   // Invalidate read cache now that a mutation has been submitted successfully
   invalidateRpcCache()
 
+  onProgress?.("confirming")
   const MAX_POLL_ATTEMPTS = 40
   let getResult = await rpc.getTransaction(sendResult.hash)
   for (let attempts = 0; getResult.status === SorobanRpc.Api.GetTransactionStatus.NOT_FOUND; attempts++) {
