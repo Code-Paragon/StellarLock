@@ -17,6 +17,7 @@ const LockDetail = lazy(() => import("./pages/LockDetail").then((m) => ({ defaul
 const Explorer = lazy(() => import("./pages/Explorer").then((m) => ({ default: m.Explorer })))
 const Discover = lazy(() => import("./pages/Discover").then((m) => ({ default: m.Discover })))
 const History = lazy(() => import("./pages/History").then((m) => ({ default: m.History })))
+const Health = lazy(() => import("./pages/Health").then((m) => ({ default: m.HealthPage })))
 
 export function App() {
   const location = useLocation()
@@ -43,6 +44,7 @@ export function App() {
           <Route path="/app/create" element={<CreateLock />} />
           <Route path="/app/locks" element={<MyLocks />} />
           <Route path="/app/lock/:id" element={<LockDetail />} />
+          <Route path="/health" element={<Health />} />
           <Route path="/explore" element={<Discover />} />
           <Route path="/explore/:token" element={<Explorer />} />
           <Route path="*" element={<Navigate to="/" replace />} />
@@ -58,6 +60,7 @@ export function App() {
             <Route path="/app/locks" element={<MyLocks />} />
             <Route path="/app/lock/:id" element={<LockDetail />} />
             <Route path="/app/history" element={<History />} />
+            <Route path="/health" element={<Health />} />
             <Route path="/explore" element={<Discover />} />
             <Route path="/explore/:token" element={<Explorer />} />
             <Route path="*" element={<Navigate to="/" replace />} />

@@ -94,6 +94,12 @@ cd contracts
 
 Paste the printed contract IDs into `src/lib/stellar.ts` under `CONTRACTS`.
 
+### Monitoring
+
+- Visit `/health` for a lightweight browser-facing status page.
+- Monitor `/api/health` for a structured JSON payload and `/api/readiness` for readiness checks.
+- External analytics and font assets use SRI and crossorigin attributes where supported.
+
 ### Contract API
 
 #### Token Locker
