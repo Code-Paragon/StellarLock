@@ -19,6 +19,12 @@ const PERSISTENT_THRESHOLD: u32 = PERSISTENT_BUMP;
 const INSTANCE_BUMP: u32 = 30 * LEDGERS_PER_DAY;
 const INSTANCE_THRESHOLD: u32 = 7 * LEDGERS_PER_DAY;
 
+// ── Rate limiting ─────────────────────────────────────────────────────────────
+// Minimum seconds between lock creations per creator address.
+// Temporary storage entry lives slightly longer than the cooldown window.
+const RATE_LIMIT_COOLDOWN: u64 = 60; // seconds
+const RATE_LIMIT_TTL_LEDGERS: u32 = 720; // ~1 hour of ledgers (well above 60s cooldown)
+
 // ── Storage keys ─────────────────────────────────────────────────────────────
 
 #[contracttype]
@@ -31,6 +37,7 @@ pub enum DataKey {
     TotalLocked(Address),
     GlobalLockCount,
     UniqueTokenCount,
+    LastLockAt(Address),
 }
 
 // ── Error types ───────────────────────────────────────────────────────────────
@@ -38,13 +45,14 @@ pub enum DataKey {
 #[contracterror]
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum ContractError {
-    AmountMustBePositive = 1,
-    UnlockMustBeFuture   = 2,
-    AlreadyWithdrawn     = 3,
-    StillLocked          = 4,
-    NothingToRelease     = 5,
-    CanOnlyExtend        = 6,
+    AmountMustBePositive  = 1,
+    UnlockMustBeFuture    = 2,
+    AlreadyWithdrawn      = 3,
+    StillLocked           = 4,
+    NothingToRelease      = 5,
+    CanOnlyExtend         = 6,
     VestingEndBeforeStart = 7,
+    RateLimitExceeded     = 8,
 }
 
 // ── On-chain types ────────────────────────────────────────────────────────────
@@ -168,6 +176,13 @@ impl TokenLocker {
             return Err(ContractError::UnlockMustBeFuture);
         }
 
+        // Enforce per-creator rate limit to prevent spam.
+        let rate_key = DataKey::LastLockAt(creator.clone());
+        let last_at: u64 = env.storage().temporary().get(&rate_key).unwrap_or(0);
+        if now.saturating_sub(last_at) < RATE_LIMIT_COOLDOWN {
+            return Err(ContractError::RateLimitExceeded);
+        }
+
         if let Some(ref v) = vesting {
             if v.end <= v.start {
                 return Err(ContractError::VestingEndBeforeStart);
@@ -208,6 +223,12 @@ impl TokenLocker {
         env.storage().persistent().set(&DataKey::TotalLocked(token.clone()), &(current_tvl + amount));
         let lock_count: u64 = env.storage().persistent().get(&DataKey::GlobalLockCount).unwrap_or(0);
         env.storage().persistent().set(&DataKey::GlobalLockCount, &(lock_count + 1));
+        push_index(&env, DataKey::ByBeneficiary(beneficiary), id);
+        push_index(&env, DataKey::ByToken(token), id);
+
+        // Record the timestamp of this lock creation for rate-limiting future calls.
+        env.storage().temporary().set(&rate_key, &now);
+        env.storage().temporary().extend_ttl(&rate_key, RATE_LIMIT_TTL_LEDGERS, RATE_LIMIT_TTL_LEDGERS);
 
         env.events().publish(
             (
