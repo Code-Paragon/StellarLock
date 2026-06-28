@@ -43,6 +43,9 @@ export function App() {
           <Route path="/" element={<Landing />} />
           <Route path="/app/create" element={<CreateLock />} />
           <Route path="/app/locks" element={<MyLocks />} />
+          <Route path="/app/lock/token/:id" element={<LockDetail />} />
+          <Route path="/app/lock/lp/:id" element={<LockDetail />} />
+          {/* Legacy deep-link: redirect bare id to token-locker */}
           <Route path="/app/lock/:id" element={<LockDetail />} />
           <Route path="/health" element={<Health />} />
           <Route path="/explore" element={<Discover />} />

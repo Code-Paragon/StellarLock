@@ -120,7 +120,7 @@ export function CreateLpLockForm() {
     setUnlockDate(new Date(Date.now() + days * DAY).toISOString().slice(0, 10))
   }
 
-  async function submit(e: FormEvent) {
+  function submit(e: FormEvent) {
     e.preventDefault()
     if (!valid) return
     setError(null)
@@ -383,6 +383,17 @@ export function CreateLpLockForm() {
             </>
           )}
         </span>
+      </div>
+
+      <div aria-live="polite" aria-atomic="true">
+        {error && (
+          <div
+            role="alert"
+            className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
+          >
+            {error}
+          </div>
+        )}
       </div>
 
       <CostEstimate

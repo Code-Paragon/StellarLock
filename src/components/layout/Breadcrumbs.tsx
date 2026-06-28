@@ -16,11 +16,12 @@ export function Breadcrumbs() {
   let items: { label: string; to?: string }[] = []
 
   if (path.startsWith("/app/lock/")) {
-    // /app/lock/:id → Home > My Locks > Lock #:id
+    // /app/lock/token/:id or /app/lock/lp/:id → Home > My Locks > Lock #:id
+    const id = params.id ?? ""
     items = [
       { label: t("breadcrumbs.home"), to: "/" },
       { label: t("breadcrumbs.myLocks"), to: "/app/locks" },
-      { label: t("breadcrumbs.lockId", { id: params.id ?? "" }) },
+      { label: t("breadcrumbs.lockId", { id }) },
     ]
   } else if (path.startsWith("/explore/")) {
     // /explore/:token → Home > Discover > :token (shortened)

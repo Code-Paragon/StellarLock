@@ -1,6 +1,6 @@
 import { useCallback, useRef, useEffect, useState } from "react"
 import { Bell, Trash2, Check, CheckCheck } from "lucide-react"
-import { useNotificationCenter } from "@/hooks/useNotifications"
+import { useNotificationCenter, type Notification } from "@/hooks/useNotifications"
 import { cn } from "@/lib/utils"
 import { formatDateTime } from "@/lib/utils"
 import { useNavigate } from "react-router-dom"
@@ -31,10 +31,10 @@ export function NotificationCenter() {
   }, [isOpen])
 
   const handleNotificationClick = useCallback(
-    (notif: any) => {
+    (notif: Notification) => {
       markAsRead(notif.id)
       if (notif.lockId) {
-        navigate(`/app/lock/${notif.lockId}`)
+        void navigate(`/app/lock/${notif.lockKind ?? "token"}/${notif.lockId}`)
         setIsOpen(false)
       }
     },

@@ -255,14 +255,8 @@ impl LpLocker {
         lock.withdrawn = true;
         save_lock(&env, &lock);
         env.events().publish(
-            (
-                Symbol::new(&env, "lp_lock_withdrawn"),
-                id,
-                lock.beneficiary.clone(),
-                lock.pool_share.clone(),
-                lock.amount,
-            ),
-            (),
+            (Symbol::new(&env, "lp_lock_withdrawn"),),
+            (id, lock.beneficiary.clone(), lock.pool_share.clone(), lock.amount),
         );
         Ok(())
     }
@@ -285,14 +279,8 @@ impl LpLocker {
 
         save_lock(&env, &lock);
         env.events().publish(
-            (
-                Symbol::new(&env, "lp_lock_extended"),
-                id,
-                lock.creator.clone(),
-                old_unlock_at,
-                new_unlock_at,
-            ),
-            (),
+            (Symbol::new(&env, "lp_lock_extended"),),
+            (id, lock.creator.clone(), old_unlock_at, new_unlock_at),
         );
         Ok(())
     }
@@ -314,13 +302,8 @@ impl LpLocker {
         save_lock(&env, &lock);
 
         env.events().publish(
-            (
-                Symbol::new(&env, "lp_beneficiary_transferred"),
-                id,
-                old_beneficiary,
-                new_beneficiary,
-            ),
-            (),
+            (Symbol::new(&env, "lp_beneficiary_transferred"),),
+            (id, old_beneficiary, new_beneficiary),
         );
         Ok(())
     }

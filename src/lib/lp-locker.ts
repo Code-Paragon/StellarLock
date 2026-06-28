@@ -128,6 +128,11 @@ function paginationArgs(offset: number, limit: number): xdr.ScVal[] {
   return [nativeToScVal(offset, { type: "u32" }), nativeToScVal(limit, { type: "u32" })]
 }
 
+export async function getLpLock(id: string): Promise<Lock | null> {
+  const raw = await simulateCall<Record<string, unknown> | null>(CONTRACTS.lpLocker, "get_lock", [idArg(id)])
+  return raw ? toLpLock(raw) : null
+}
+
 export async function getLpLocksByCreator(address: string, offset = 0, limit = DEFAULT_PAGE_SIZE): Promise<Lock[]> {
   const raw = await simulateCall<Record<string, unknown>[]>(CONTRACTS.lpLocker, "get_locks_by_creator", [
     addressArg(address),
