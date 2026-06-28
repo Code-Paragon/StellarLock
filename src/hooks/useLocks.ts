@@ -10,24 +10,46 @@ import {
   getLockCountByToken,
 } from "@/lib/token-locker"
 import {
+  getLpLock,
   getLpLocksByBeneficiary,
   getLpLocksByCreator,
   getLpLockCountByCreator,
   getLpLockCountByBeneficiary,
 } from "@/lib/lp-locker"
+import { fetchPricesBatch } from "@/lib/prices"
 import type { Lock } from "@/types/lock"
 
-/** Single lock by id (used by the detail page). */
-export function useLock(id: string | undefined) {
-  return useAsync(() => (id ? getLock(id) : Promise.resolve(null)), [id])
+async function withUsdValues(locks: Lock[]): Promise<Lock[]> {
+  if (locks.length === 0) return locks
+  const addresses = locks.map((l) => l.token.address)
+  const prices = await fetchPricesBatch(addresses)
+  return locks.map((l) => ({ ...l, usdValue: (prices.get(l.token.address) ?? 0) * l.amount }))
+}
+
+/**
+ * Single lock by id and type. Tries token-locker for "token" type,
+ * lp-locker for "lp" type.
+ */
+export function useLock(id: string | undefined, type: "token" | "lp" = "token") {
+  return useAsync(async () => {
+    if (!id) return null
+    const raw = type === "lp" ? await getLpLock(id) : await getLock(id)
+    if (!raw) return null
+    const [enriched] = await withUsdValues([raw])
+    return enriched
+  }, [id, type])
 }
 
 /** Public explorer: all locks for a token address. */
 export function useLocksByToken(tokenAddress: string | undefined, offset = 0, limit = 50) {
-  return useAsync(
-    () => (tokenAddress ? getLocksByToken(tokenAddress, offset, limit) : Promise.resolve(null)),
-    [tokenAddress, offset, limit],
-  )
+  return useAsync(async () => {
+    if (!tokenAddress) return null
+    const summary = await getLocksByToken(tokenAddress, offset, limit)
+    if (!summary) return null
+    const enriched = await withUsdValues(summary.locks)
+    const totalUsdValue = enriched.reduce((s, l) => s + l.usdValue, 0)
+    return { ...summary, locks: enriched, totalUsdValue }
+  }, [tokenAddress, offset, limit])
 }
 
 /** Lock count for a token (for pagination controls). */
@@ -50,8 +72,14 @@ export function useMyLocks(address: string | null, offset = 0, limit = 50) {
         getLockCountByBeneficiary(address),
         getLpLockCountByBeneficiary(address),
       ])
-    const created = [...tCreated, ...lpCreated]
-    const received = [...tReceived, ...lpReceived].filter((l) => l.creator !== address)
+    const allLocks = [...tCreated, ...lpCreated, ...tReceived, ...lpReceived]
+    const enriched = await withUsdValues(allLocks)
+    const enrichedMap = new Map(enriched.map((l) => [l.id, l]))
+
+    const created = [...tCreated, ...lpCreated].map((l) => enrichedMap.get(l.id) ?? l)
+    const received = [...tReceived, ...lpReceived]
+      .filter((l) => l.creator !== address)
+      .map((l) => enrichedMap.get(l.id) ?? l)
     return {
       created,
       received,

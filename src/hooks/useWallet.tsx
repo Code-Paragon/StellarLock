@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, useRef, type ReactNode } from "react"
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import {
   StellarWalletsKit,
   WalletNetwork,
@@ -16,6 +16,9 @@ interface WalletContextValue {
   address: string | null
   isConnected: boolean
   connecting: boolean
+  connectState: "idle" | "connecting" | "retrying" | "failed" | "success"
+  connectError: string | null
+  connectHelp: string | null
   disconnected: boolean
   networkChanged: boolean
   connect: () => Promise<void>
@@ -32,10 +35,14 @@ const walletNetwork = NETWORK.id === "mainnet" ? WalletNetwork.PUBLIC : WalletNe
 export function WalletProvider({ children }: { children: ReactNode }) {
   const [address, setAddress] = useState<string | null>(null)
   const [connecting, setConnecting] = useState(false)
+  const [connectState, setConnectState] = useState<WalletContextValue["connectState"]>("idle")
+  const [connectError, setConnectError] = useState<string | null>(null)
+  const [connectHelp, setConnectHelp] = useState<string | null>(null)
   const [disconnected, setDisconnected] = useState(false)
   const [networkChanged, setNetworkChanged] = useState(false)
   const connectionCheckIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const kitRef = useRef<StellarWalletsKit | null>(null)
+  const connectAttemptRef = useRef(false)
 
   function getKit(): StellarWalletsKit {
     if (!kitRef.current) {
@@ -102,37 +109,67 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   }, [address])
 
   const connect = useCallback(async () => {
+    if (connectAttemptRef.current) return
+
+    connectAttemptRef.current = true
     setConnecting(true)
+    setConnectState("connecting")
+    setConnectError(null)
+    setConnectHelp(null)
+
+    const k = getKit()
+    let lastError: unknown
+
     try {
-      const k = getKit()
-      await new Promise<void>((resolve, reject) => {
-        k.openModal({
-          onWalletSelected: async (option) => {
-            try {
-              k.setWallet(option.id)
-              const publicKey = await k.getPublicKey()
-              if (!publicKey) {
-                reject(new Error("Wallet returned no public key"))
-                return
-              }
-              setAddress(publicKey)
-              localStorage.setItem(STORAGE_KEY, publicKey)
-              localStorage.setItem(WALLET_ID_KEY, option.id)
-              trackEvent("wallet_connect")
-              resolve()
-            } catch (err) {
-              reject(err)
-            }
-          },
-          onClosed: () => resolve(),
-        })
-      })
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err)
-      console.error("Wallet connect error:", msg)
-      notify.error(msg)
+      for (let attempt = 1; attempt <= 4; attempt++) {
+        try {
+          await new Promise<void>((resolve, reject) => {
+            k.openModal({
+              onWalletSelected: async (option) => {
+                try {
+                  k.setWallet(option.id)
+                  const publicKey = await k.getPublicKey()
+                  if (!publicKey) {
+                    reject(new Error("Wallet returned no public key"))
+                    return
+                  }
+                  setAddress(publicKey)
+                  localStorage.setItem(STORAGE_KEY, publicKey)
+                  localStorage.setItem(WALLET_ID_KEY, option.id)
+                  trackEvent("wallet_connect")
+                  setConnectState("success")
+                  resolve()
+                } catch (err) {
+                  reject(err)
+                }
+              },
+              onClosed: () => reject(new Error("Connection cancelled")),
+            })
+          })
+          return
+        } catch (err: unknown) {
+          lastError = err
+          if (attempt < 4) {
+            const delay = 1000 * 2 ** (attempt - 1)
+            setConnectState("retrying")
+            const message = err instanceof Error ? err.message : String(err)
+            setConnectError(`Retrying in ${delay / 1000}s…`)
+            setConnectHelp(getConnectHelp(message))
+            await new Promise((resolve) => setTimeout(resolve, delay))
+            continue
+          }
+
+          const msg = err instanceof Error ? err.message : String(err)
+          console.error("Wallet connect error:", msg)
+          setConnectState("failed")
+          setConnectError(getFriendlyError(msg))
+          setConnectHelp(getConnectHelp(msg))
+          notify.error(getFriendlyError(msg))
+        }
+      }
     } finally {
       setConnecting(false)
+      connectAttemptRef.current = false
     }
   }, [])
 
@@ -140,6 +177,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     setAddress(null)
     setDisconnected(false)
     setNetworkChanged(false)
+    setConnectState("idle")
+    setConnectError(null)
+    setConnectHelp(null)
     localStorage.removeItem(STORAGE_KEY)
     localStorage.removeItem(WALLET_ID_KEY)
     if (connectionCheckIntervalRef.current) {
@@ -176,6 +216,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       address,
       isConnected: !!address,
       connecting,
+      connectState,
+      connectError,
+      connectHelp,
       disconnected,
       networkChanged,
       connect,
@@ -184,10 +227,26 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       dismissNetworkAlert,
       signTransaction,
     }),
-    [address, connecting, disconnected, networkChanged, connect, disconnect, dismissDisconnectAlert, dismissNetworkAlert, signTransaction],
+    [address, connecting, connectState, connectError, connectHelp, disconnected, networkChanged, connect, disconnect, dismissDisconnectAlert, dismissNetworkAlert, signTransaction],
   )
 
   return <WalletContext.Provider value={value}>{children}</WalletContext.Provider>
+}
+
+function getFriendlyError(message: string): string {
+  const normalized = message.toLowerCase()
+  if (normalized.includes("cancel") || normalized.includes("rejected")) return "Connection was rejected. Please approve the prompt in Freighter."
+  if (normalized.includes("network")) return "The wallet is on the wrong network. Switch Freighter to the app network and try again."
+  if (normalized.includes("freighter") || normalized.includes("extension")) return "Freighter was not detected. Install or unlock the extension and retry."
+  return message
+}
+
+function getConnectHelp(message: string): string {
+  const normalized = message.toLowerCase()
+  if (normalized.includes("cancel") || normalized.includes("rejected")) return "Approve the connection popup in Freighter to continue."
+  if (normalized.includes("network")) return "Switch Freighter to Testnet or Mainnet to match the app and try again."
+  if (normalized.includes("freighter") || normalized.includes("extension")) return "Install the Freighter extension or unlock it, then try again."
+  return "Check your browser extension and network connection, then retry."
 }
 
 export function useWallet(): WalletContextValue {

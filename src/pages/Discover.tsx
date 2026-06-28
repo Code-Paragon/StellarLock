@@ -8,8 +8,8 @@ import { StatCard } from "@/components/ui/StatCard"
 import { Badge } from "@/components/ui/Badge"
 import { StatusBadge } from "@/components/ui/StatusBadge"
 import { TokenAvatar } from "@/components/ui/TokenAvatar"
-import { Button } from "@/components/ui/Button"
 import { RecentActivity } from "@/components/discover/RecentActivity"
+import { SkeletonStatCard, SkeletonLockCard } from "@/components/ui/Skeleton"
 import { MOCK_LOCKS, TOKENS } from "@/lib/mock-data"
 import { formatAmount, formatDate, formatUsd, shortAddress } from "@/lib/utils"
 
@@ -89,7 +89,7 @@ export function Discover() {
             {recentLocks.map((lock) => (
               <Link
                 key={lock.id}
-                to={`/app/lock/${lock.id}`}
+                to={`/app/lock/${lock.kind}/${lock.id}`}
                 className="flex items-center gap-4 p-4 transition-colors hover:bg-secondary/30"
               >
                 <TokenAvatar symbol={lock.token.symbol} contractId={lock.token.address} size="sm" />
@@ -117,7 +117,7 @@ export function Discover() {
             {upcomingUnlocks.map((lock) => (
               <Link
                 key={lock.id}
-                to={`/app/lock/${lock.id}`}
+                to={`/app/lock/${lock.kind}/${lock.id}`}
                 className="flex items-center gap-4 p-4 transition-colors hover:bg-secondary/30"
               >
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary">

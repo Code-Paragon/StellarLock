@@ -25,6 +25,8 @@ export function initAnalytics(): void {
 
   const script = document.createElement("script")
   script.defer = true
+  script.crossOrigin = "anonymous"
+  script.integrity = import.meta.env.VITE_PLAUSIBLE_INTEGRITY || ""
   script.dataset.domain = domain
   script.dataset.api = `${getPlausibleApiHost()}/api/event`
   script.src = `${getPlausibleApiHost()}/js/script.js`

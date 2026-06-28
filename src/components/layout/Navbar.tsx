@@ -7,12 +7,13 @@ import { NETWORK } from "@/lib/stellar"
 import { useTheme } from "@/hooks/useTheme"
 import { Button } from "@/components/ui/Button"
 import { NotificationCenter } from "@/components/ui/NotificationCenter"
+import { RpcStatusIndicator } from "@/components/layout/RpcStatus"
 import { shortAddress, cn } from "@/lib/utils"
 import { prefetch } from "@/lib/prefetch"
 
 export function Navbar() {
   const { t } = useTranslation()
-  const { address, isConnected, connecting, connect, disconnect } = useWallet()
+  const { address, isConnected, connecting, connectState, connectError, connectHelp, connect, disconnect } = useWallet()
   const { theme, toggleTheme } = useTheme()
   const location = useLocation()
   const [menuOpen, setMenuOpen] = useState(false)
@@ -69,6 +70,7 @@ export function Navbar() {
         </nav>
 
         <div className="flex items-center gap-2">
+          <RpcStatusIndicator />
           <span className="hidden rounded-md border border-border bg-card px-3 py-2 text-sm font-medium text-muted-foreground sm:inline-flex">
             {NETWORK.displayName}
           </span>
@@ -95,10 +97,14 @@ export function Navbar() {
               </Button>
             </>
           ) : (
-            <Button onClick={connect} loading={connecting} className="hidden sm:inline-flex">
-              <Wallet className="h-4 w-4" />
-              {t("nav.connectWallet")}
-            </Button>
+            <div className="hidden flex-col items-end sm:flex">
+              <Button onClick={connect} loading={connecting} disabled={connecting || connectState === "retrying"} className="sm:inline-flex">
+                <Wallet className="h-4 w-4" />
+                {connectState === "retrying" ? "Retrying…" : connectState === "connecting" ? "Connecting…" : t("nav.connectWallet")}
+              </Button>
+              {connectError && <p className="mt-1 max-w-48 text-right text-xs text-muted-foreground">{connectError}</p>}
+              {connectHelp && <p className="max-w-48 text-right text-xs text-muted-foreground">{connectHelp}</p>}
+            </div>
           )}
 
           <button
@@ -154,10 +160,14 @@ export function Navbar() {
                   </button>
                 </div>
               ) : (
-                <Button onClick={() => { connect(); setMenuOpen(false) }} loading={connecting} className="w-full">
-                  <Wallet className="h-4 w-4" />
-                  {t("nav.connectWallet")}
-                </Button>
+                <div className="space-y-2">
+                  <Button onClick={() => { connect(); setMenuOpen(false) }} loading={connecting} disabled={connecting || connectState === "retrying"} className="w-full">
+                    <Wallet className="h-4 w-4" />
+                    {connectState === "retrying" ? "Retrying…" : connectState === "connecting" ? "Connecting…" : t("nav.connectWallet")}
+                  </Button>
+                  {connectError && <p className="text-center text-xs text-muted-foreground">{connectError}</p>}
+                  {connectHelp && <p className="text-center text-xs text-muted-foreground">{connectHelp}</p>}
+                </div>
               )}
             </div>
           </nav>

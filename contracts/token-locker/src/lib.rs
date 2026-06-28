@@ -2,7 +2,7 @@
 
 use soroban_sdk::{
     contract, contracterror, contractimpl, contracttype, token, vec,
-    Address, Env, Vec, Symbol,
+    Address, BytesN, Env, Vec, Symbol,
 };
 
 #[cfg(test)]
@@ -36,6 +36,18 @@ pub enum DataKey {
     GlobalLockCount,
     UniqueTokenCount,
     LastLockAt(Address),
+    Admin,
+    UpgradeProposal,
+}
+
+// 7-day timelock before an upgrade can be executed.
+const UPGRADE_DELAY: u64 = 7 * 24 * 3600;
+
+#[contracttype]
+#[derive(Clone)]
+pub struct UpgradeProposal {
+    pub new_wasm_hash: BytesN<32>,
+    pub execute_after: u64,
 }
 
 // ── Error types ───────────────────────────────────────────────────────────────
@@ -279,6 +291,10 @@ impl TokenLocker {
 
         save_lock(&env, &lock);
         env.events().publish((Symbol::new(&env, "lock_withdrawn"), id, lock.beneficiary.clone(), lock.token.clone(), releasable), ());
+        env.events().publish(
+            (Symbol::new(&env, "lock_withdrawn"),),
+            (id, lock.beneficiary.clone(), lock.token.clone(), releasable),
+        );
         Ok(())
     }
 
@@ -295,6 +311,10 @@ impl TokenLocker {
 
         save_lock(&env, &lock);
         env.events().publish((Symbol::new(&env, "lock_extended"), id, lock.creator.clone(), old_unlock_at, new_unlock_at), ());
+        env.events().publish(
+            (Symbol::new(&env, "lock_extended"),),
+            (id, lock.creator.clone(), old_unlock_at, new_unlock_at),
+        );
         Ok(())
     }
 
@@ -312,6 +332,10 @@ impl TokenLocker {
         save_lock(&env, &lock);
 
         env.events().publish((Symbol::new(&env, "beneficiary_transferred"), id, old_beneficiary, new_beneficiary), ());
+        env.events().publish(
+            (Symbol::new(&env, "beneficiary_transferred"),),
+            (id, old_beneficiary, new_beneficiary),
+        );
         Ok(())
     }
 
@@ -438,5 +462,57 @@ impl TokenLocker {
         let total_lock_count: u64 = env.storage().persistent().get(&DataKey::GlobalLockCount).unwrap_or(0);
         let unique_token_count: u64 = env.storage().persistent().get(&DataKey::UniqueTokenCount).unwrap_or(0);
         GlobalStats { total_lock_count, unique_token_count }
+    }
+}
+
+    // ── Upgrade mechanism (7-day timelock) ───────────────────────────────────
+
+    /// Must be called once after deployment to set the admin.
+    /// Panics if admin is already set.
+    pub fn init(env: Env, admin: Address) {
+        if env.storage().instance().has(&DataKey::Admin) {
+            panic!("already initialised");
+        }
+        admin.require_auth();
+        env.storage().instance().set(&DataKey::Admin, &admin);
+        env.storage().instance().extend_ttl(INSTANCE_THRESHOLD, INSTANCE_BUMP);
+    }
+
+    /// Admin proposes a WASM upgrade. Executable only after 7 days.
+    pub fn propose_upgrade(env: Env, new_wasm_hash: BytesN<32>) {
+        let admin: Address = env.storage().instance().get(&DataKey::Admin).expect("not initialised");
+        admin.require_auth();
+        let execute_after = env.ledger().timestamp() + UPGRADE_DELAY;
+        let proposal = UpgradeProposal { new_wasm_hash, execute_after };
+        env.storage().instance().set(&DataKey::UpgradeProposal, &proposal);
+        env.storage().instance().extend_ttl(INSTANCE_THRESHOLD, INSTANCE_BUMP);
+        env.events().publish(
+            (Symbol::new(&env, "upgrade_proposed"), execute_after),
+            (),
+        );
+    }
+
+    /// Execute a previously proposed upgrade after the timelock has elapsed.
+    pub fn execute_upgrade(env: Env) {
+        let admin: Address = env.storage().instance().get(&DataKey::Admin).expect("not initialised");
+        admin.require_auth();
+        let proposal: UpgradeProposal = env
+            .storage()
+            .instance()
+            .get(&DataKey::UpgradeProposal)
+            .expect("no pending upgrade");
+        if env.ledger().timestamp() < proposal.execute_after {
+            panic!("timelock not elapsed");
+        }
+        env.storage().instance().remove(&DataKey::UpgradeProposal);
+        env.deployer().update_current_contract_wasm(proposal.new_wasm_hash);
+    }
+
+    /// Cancel a pending upgrade. Admin only.
+    pub fn cancel_upgrade(env: Env) {
+        let admin: Address = env.storage().instance().get(&DataKey::Admin).expect("not initialised");
+        admin.require_auth();
+        env.storage().instance().remove(&DataKey::UpgradeProposal);
+        env.events().publish((Symbol::new(&env, "upgrade_cancelled"),), ());
     }
 }
