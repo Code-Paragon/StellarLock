@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useState } from "react"
 
 const STORAGE_KEY_PREFS = "stellarlock:notification_prefs"
 const STORAGE_KEY_HISTORY = "stellarlock:notification_history"
@@ -11,6 +11,7 @@ export interface Notification {
   id: string
   type: NotificationType
   lockId: string
+  lockKind?: "token" | "lp"
   title: string
   message: string
   timestamp: number
@@ -27,7 +28,7 @@ export interface NotificationPrefs {
 
 function loadPrefs(): Record<string, NotificationPrefs> {
   try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY_PREFS) ?? "{}")
+    return JSON.parse(localStorage.getItem(STORAGE_KEY_PREFS) ?? "{}") as Record<string, NotificationPrefs>
   } catch {
     return {}
   }
@@ -39,7 +40,7 @@ function savePrefs(prefs: Record<string, NotificationPrefs>) {
 
 function loadNotifications(): Notification[] {
   try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY_HISTORY) ?? "[]")
+    return JSON.parse(localStorage.getItem(STORAGE_KEY_HISTORY) ?? "[]") as Notification[]
   } catch {
     return []
   }

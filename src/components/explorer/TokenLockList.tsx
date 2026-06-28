@@ -104,7 +104,7 @@ export function TokenLockList({ locks }: { locks: Lock[] }) {
             <div className="col-span-2 flex items-center justify-between gap-2 md:justify-end">
               <StatusBadge status={lock.status} />
               <Link
-                to={`/app/lock/${lock.id}`}
+                to={`/app/lock/${lock.kind ?? "token"}/${lock.id}`}
                 className="text-muted-foreground transition-colors hover:text-primary"
                 aria-label={`View lock ${lock.id}`}
               >

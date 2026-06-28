@@ -12,6 +12,7 @@ import { Pagination } from "@/components/ui/Pagination"
 import { TokenLockList } from "@/components/explorer/TokenLockList"
 import { LockBadge } from "@/components/explorer/LockBadge"
 import { TokenSearchBar } from "@/components/explorer/TokenSearchBar"
+import { SkeletonTokenHeader, SkeletonLockCard, SkeletonStatCard } from "@/components/ui/Skeleton"
 import { explorerLink } from "@/lib/stellar"
 import { formatAmount, formatDate, formatUsd, shortAddress } from "@/lib/utils"
 import { CopyButton } from "@/components/ui/CopyButton"
@@ -43,7 +44,7 @@ export function Explorer() {
         <ArrowLeft className="h-4 w-4" /> {t("explorer.backToSearch")}
       </Link>
 
-      {loading && <ExplorerSkeleton />}
+      {loading && <ExplorerSkeleton /></}
 
       {!loading && (error || !data) && <NotFound query={token ?? ""} />}
 
@@ -142,13 +143,17 @@ export function Explorer() {
 function ExplorerSkeleton() {
   return (
     <div className="flex flex-col gap-8">
-      <div className="h-28 animate-pulse rounded-2xl border border-border bg-card" />
+      <SkeletonTokenHeader />
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="h-28 animate-pulse rounded-xl border border-border bg-card" />
+          <SkeletonStatCard key={i} />
         ))}
       </div>
-      <div className="h-64 animate-pulse rounded-2xl border border-border bg-card" />
+      <div className="space-y-3">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <SkeletonLockCard key={i} />
+        ))}
+      </div>
     </div>
   )
 }

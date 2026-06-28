@@ -76,6 +76,8 @@ export function formatError(err: unknown): string {
   if (err instanceof Error) return err.message
   if (typeof err === "object" && err !== null) return JSON.stringify(err, null, 2)
   return String(err)
+}
+
 export const notify = {
   lockCreated: (): string => toast.success("Lock created successfully"),
   withdrawalCompleted: (): string => toast.success("Withdrawal completed"),

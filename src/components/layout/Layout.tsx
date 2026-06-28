@@ -3,6 +3,7 @@ import { Lock } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { Navbar } from "@/components/layout/Navbar"
 import { WalletAlerts } from "@/components/layout/WalletAlerts"
+import { RpcStatusBanner } from "@/components/layout/RpcStatus"
 import { NETWORK } from "@/lib/stellar"
 import { Breadcrumbs } from "@/components/layout/Breadcrumbs"
 
@@ -17,6 +18,7 @@ export function Layout() {
       >
         {t("common.skipToContent")}
       </a>
+      <RpcStatusBanner />
       <WalletAlerts />
       <Navbar />
       <Breadcrumbs />
